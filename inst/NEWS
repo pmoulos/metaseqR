@@ -1,0 +1,78 @@
+ChangeLog for package metaseqR
+
+changes in version 0.9.0 (2013-11-21)
+added:
+    - First release
+
+changes in version 0.9.1 (2013-11-27)
+added:
+    - Permutation methods for combining p-values from multiple statistics
+    - More interactive and compact report
+fixed:
+    - A bug in exon filters resulting in removing genes/transcripts with only one
+    exon
+    - A serious bug in exon filters causing wrong genes to be filtered out under circumstances
+
+changes in version 0.91.0 (2014-01-03)
+added:
+  - Functions to create simulated datasets
+  - Functions to create false discovery and ROC curves
+fixed:
+    - A bug in p-value vector naming causing unordered p-values for limma and
+    baySeq when combining methods
+    - Smaller bug fixes
+
+changes in version 0.92.0 (2014-01-25)
+added:
+    - Functions to estimate weights for combining p-values based on simulated
+    datasets from real data
+fixed:
+    - Smaller bug fixes
+
+changes in version 0.93.0 (2014-02-12)
+added:
+    - Support for Arabidopsis thaliana
+    - Additional validation functions
+fixed:
+    - Bugs affecting multilevel factorial analysis (single factor, more than two
+    conditions)
+    - Smaller bug fixes
+
+changes in version 0.99.0 (2014-02-21)
+added:
+    - Support for Pan troglodytes
+    - Improved the simulator to i) simulate length bias and ii) better length
+    selection
+fixed:
+    - Code changes to comply with Bioconductor's guidelines
+
+changes in version 0.99.1 (2014-03-12)
+added:
+    - Ability to export counts table (raw and normalized) when reading from BAM
+    files or just normalized otherwise
+    - Valid examples for many functions
+fixed:
+  - More code and codestyle changes to comply with Bioconductor's guidelines
+
+changes in version 0.99.2 (2014-03-14)
+added:
+    - Ability to display only the top x% of significant genes to avoid excessively
+    big reports
+fixed:
+    - More code and codestyle changes to comply with Bioconductor's guidelines
+
+changes in version 0.99.3 (2014-03-17)
+added:
+    - Function to check and warn if a main metaseqr argument is invalid (may
+    prevent crashes during run)
+fixed:
+    - Small bug fix in read2count function
+
+changes in version 0.99.4 (2014-03-18)
+added:
+fixed:
+    - Removed all <<- assignments
+    - Changed the Depends of DESCRIPTION file to import less packages in the main
+    environment
+    - Added qvalue package to Depends as there was a problem with NBPSeq
+

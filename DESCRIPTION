@@ -1,0 +1,37 @@
+Package: metaseqR
+Type: Package
+Title: metaseqR: an R package for the analysis and result reporting of
+        RNA-Seq gene expression data using multiple statistical
+        algorithms.
+Author: Panagiotis Moulos <moulos@fleming.gr>
+Maintainer: Panagiotis Moulos <moulos@fleming.gr>
+Depends: R (>= 2.13.0), EDASeq, DESeq, limma, qvalue
+Imports: edgeR, NOISeq, baySeq, NBPSeq, biomaRt, utils, gplots,
+        corrplot, vsn, brew, rjson
+Suggests: BiocGenerics, GenomicRanges, rtracklayer, Rsamtools,
+        Repitools, MADAM, survcomp, VennDiagram, knitr, zoo, log4r,
+        RUnit
+Enhances: parallel, TCC
+Description: Provides an interface to several normalization and
+        statistical testing packages for RNA-Seq gene expression data.
+        Additionally, it creates several diagnostic plots, performs
+        meta-analysis by combinining the results of several statistical
+        tests and reports the results in an interactive way.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyLoad: yes
+LazyData: yes
+URL: http://www.fleming.gr
+biocViews: Software, GeneExpression, DifferentialExpression,
+        WorkflowStep, Preprocessing, QualityControl, Normalization,
+        ReportWriting, RNASeq
+VignetteBuilder: knitr
+Authors@R: c(person(given="Panagiotis", family="Moulos",
+        email="moulos@fleming.gr", role=c("aut", "cre")))
+Version: 0.99.4
+Date: 2014-03-18
+Collate: 'zzz.R' 'metaseqr.argcheck.R' 'metaseqr-data.R'
+        'metaseqr.export.R' 'metaseqr.filter.R' 'metaseqr.main.R'
+        'metaseqr.meta.R' 'metaseqr.norm.R' 'metaseqR-package.R'
+        'metaseqr.plot.R' 'metaseqr.sim.R' 'metaseqr.stat.R'
+        'metaseqr.util.R'
