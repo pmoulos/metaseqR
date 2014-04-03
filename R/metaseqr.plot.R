@@ -92,32 +92,33 @@ diagplot.metaseqr <- function(object,sample.list,annotation=NULL,contrast.list=N
     # can be used outside so it must be checked at some point...
     if (!is.matrix(object) && !is.data.frame(object))
         stopwrap("object argument must be a matrix or data frame!")
-    if (is.null(annotation) && any(diagplot.type %in% c("biodetection","countsbio",
-        "saturation","rnacomp","readnoise","biodist","gcbias","lengthbias",
-        "filtered")))
-        stopwrap("annotation argument is needed when diagplot.type is \"biodetection\", ",
-            "\"countsbio\",\"saturation\",\"rnacomp\", \"readnoise\", \"biodist\", ",
-            "\"gcbias\", \"lengthbias\", \"filtered\" or \"venn\"!")
+    if (is.null(annotation) && any(diagplot.type %in% c("biodetection",
+        "countsbio","saturation","rnacomp","readnoise","biodist","gcbias",
+        "lengthbias","filtered")))
+        stopwrap("annotation argument is needed when diagplot.type is ",
+            "\"biodetection\", \"countsbio\",\"saturation\",\"rnacomp\", ",
+            "\"readnoise\", \"biodist\", \"gcbias\", \"lengthbias\", ",
+            "\"filtered\" or \"venn\"!")
     if (any(diagplot.type %in% c("deheatmap","volcano","biodist","venn"))) {
         if (is.null(contrast.list))
             stopwrap("contrast.list argument is needed when diagplot.type is ",
                 "\"deheatmap\",\"volcano\", \"biodist\" or \"venn\"!")
         if (is.null(p.list))
-            stopwrap("The p argument which is a list of p-values for each contrast ",
-                "is needed when diagplot.type is \"deheatmap\", \"volcano\", ",
-                "\"biodist\" or \"venn\"!")
+            stopwrap("The p argument which is a list of p-values for each ",
+                "contrast is needed when diagplot.type is \"deheatmap\", ",
+                "\"volcano\", \"biodist\" or \"venn\"!")
         if (is.na(thresholds$p) || is.null(thresholds$p) || thresholds$p==1) {
-            warnwrap(paste("The p-value threshold when diagplot.type is \"deheatmap\", ",
-                "\"volcano\", \"biodist\" or \"venn\" must allow the normal plotting ",
-                "of DEG diagnostic plots! Setting to 0.05..."))
+            warnwrap(paste("The p-value threshold when diagplot.type is ",
+            "\"deheatmap\", \"volcano\", \"biodist\" or \"venn\" must allow ",
+            "the normal plotting of DEG diagnostic plots! Setting to 0.05..."))
             thresholds$p <- 0.05
         }
     }
     if (is.null(path)) path <- getwd()
     if (is.data.frame(object) && !("filtered" %in% diagplot.type)) 
         object <- as.matrix(object)
-    if (any(diagplot.type %in% c("biodetection","countsbio","saturation","rnacomp",
-        "biodist","readnoise")))
+    if (any(diagplot.type %in% c("biodetection","countsbio","saturation",
+        "rnacomp","biodist","readnoise")))
         covars <- list(
             data=object,
             length=annotation$end - annotation$start,
@@ -129,7 +130,8 @@ diagplot.metaseqr <- function(object,sample.list,annotation=NULL,contrast.list=N
 
     raw.plots <- c("mds","biodetection","countsbio","saturation","readnoise",
         "correl","pairwise")
-    norm.plots <- c("boxplot","gcbias","lengthbias","meandiff","meanvar","rnacomp")
+    norm.plots <- c("boxplot","gcbias","lengthbias","meandiff","meanvar",
+        "rnacomp")
     stat.plots <- c("deheatmap","volcano","biodist")
     other.plots <- c("filtered")
     venn.plots <- c("venn")
@@ -144,31 +146,32 @@ diagplot.metaseqr <- function(object,sample.list,annotation=NULL,contrast.list=N
                         path=path)
                 },
                 biodetection = {
-                    files$biodetection <- diagplot.noiseq(object,sample.list,covars,
-                        which.plot=p,output=output,path=path,...)
+                    files$biodetection <- diagplot.noiseq(object,sample.list,
+                        covars,which.plot=p,output=output,path=path,...)
                 },
                 countsbio = {
-                    files$countsbio <- diagplot.noiseq(object,sample.list,covars,
-                        which.plot=p,output=output,path=path,...)
+                    files$countsbio <- diagplot.noiseq(object,sample.list,
+                        covars,which.plot=p,output=output,path=path,...)
                 },
                 saturation = {
-                    fil <- diagplot.noiseq(object,sample.list,covars,which.plot=p,
-                        output=output,path=path,...)
+                    fil <- diagplot.noiseq(object,sample.list,covars,
+                        which.plot=p,output=output,path=path,...)
                     files$saturation$biotype <- fil[["biotype"]]
                     files$saturation$sample <- fil[["sample"]]
                 },
                 readnoise = {
-                    files$readnoise <- diagplot.noiseq(object,sample.list,covars,
-                        which.plot=p,output=output,path=path,...)
+                    files$readnoise <- diagplot.noiseq(object,sample.list,
+                        covars,which.plot=p,output=output,path=path,...)
                 },
                 correl = {
                     files$correl$heatmap <- diagplot.cor(object,type="heatmap",
                         output=output,path=path,...)
-                    files$correl$correlogram <- diagplot.cor(object,type="correlogram",
-                        output=output,path=path,...)
+                    files$correl$correlogram <- diagplot.cor(object,
+                        type="correlogram",output=output,path=path,...)
                 },
                 pairwise = {
-                    files$pairwise <- diagplot.pairs(object,output=output,path=path)
+                    files$pairwise <- diagplot.pairs(object,output=output,
+                        path=path)
                 }
             )
         }
@@ -180,8 +183,8 @@ diagplot.metaseqr <- function(object,sample.list,annotation=NULL,contrast.list=N
                 },
                 gcbias = {
                     files$gcbias <- diagplot.edaseq(object,sample.list,
-                        covar=annotation$gc_content,is.norm=is.norm,which.plot=p,
-                        output=output,path=path,...)
+                        covar=annotation$gc_content,is.norm=is.norm,
+                        which.plot=p,output=output,path=path,...)
                 },
                 lengthbias = {
                     files$lengthbias <- diagplot.edaseq(object,sample.list,
@@ -206,7 +209,8 @@ diagplot.metaseqr <- function(object,sample.list,annotation=NULL,contrast.list=N
                 },
                 rnacomp = {
                     files$rnacomp <- diagplot.noiseq(object,sample.list,covars,
-                        which.plot=p,output=output,is.norm=is.norm,path=path,...)
+                        which.plot=p,output=output,is.norm=is.norm,path=path,
+                        ...)
                 }
             )
         }
@@ -223,14 +227,15 @@ diagplot.metaseqr <- function(object,sample.list,annotation=NULL,contrast.list=N
                     volcano = {
                         fc <- log2(make.fold.change(cnt,sample.list,object,1))
                         for (contrast in colnames(fc)) {
-                            files$volcano[[contrast]] <- diagplot.volcano(fc[,contrast],
-                                p.list[[cnt]],contrast,fcut=thresholds$f,
-                                pcut=thresholds$p,output=output,path=path)
+                            files$volcano[[contrast]] <- diagplot.volcano(
+                                fc[,contrast],p.list[[cnt]],contrast,
+                                fcut=thresholds$f,pcut=thresholds$p,
+                                output=output,path=path)
                         }
                     },
                     biodist = {
-                        files$biodist[[cnt]] <- diagplot.noiseq(object,sample.list,
-                            covars,which.plot=p,output=output,
+                        files$biodist[[cnt]] <- diagplot.noiseq(object,
+                            sample.list,covars,which.plot=p,output=output,
                             biodist.opts=list(p=p.list[[cnt]],
                             pcut=thresholds$p,name=cnt),path=path,...)
                     }
@@ -347,9 +352,9 @@ diagplot.boxplot <- function(mat,name=NULL,log.it="auto",y.lim="default",
         nams <- unlist(name)
         grouped <- TRUE
     }
-    cols <- c("red3","green3","blue2","gold","skyblue","orange3","burlywood","red",
-        "blue","green","orange","darkgrey","green4","black","pink","brown",
-        "magenta","yellowgreen","pink4","seagreen4","darkcyan")
+    cols <- c("red3","green3","blue2","gold","skyblue","orange3","burlywood",
+        "red","blue","green","orange","darkgrey","green4","black","pink",
+        "brown","magenta","yellowgreen","pink4","seagreen4","darkcyan")
     if (grouped) {
         tmp <- as.numeric(factor(as.class.vector(name)))
         b.cols <- cols[tmp]
@@ -401,8 +406,8 @@ diagplot.boxplot <- function(mat,name=NULL,log.it="auto",y.lim="default",
 #' sample.list <- list(A=c("A1","A2"),B=c("B1","B2","B3"))
 #' diagplot.mds(data.matrix,sample.list)
 #'}
-diagplot.mds <- function(x,sample.list,method="spearman",log.it=TRUE,output="x11",
-    path=NULL,...) {
+diagplot.mds <- function(x,sample.list,method="spearman",log.it=TRUE,
+    output="x11",path=NULL,...) {
     if (is.null(path)) path <- getwd()
     classes <- as.factor(as.class.vector(sample.list))
     design <- as.numeric(classes)
@@ -410,7 +415,8 @@ diagplot.mds <- function(x,sample.list,method="spearman",log.it=TRUE,output="x11
                   "pink2","seagreen4","brown","purple","chocolate")
     pchspace <- c(20,17,15,16,8,3,2,0,1,4)
     if (ncol(x)<3) {
-        warnwrap("MDS plot cannot be created with less than 3 samples! Skipping...")
+        warnwrap("MDS plot cannot be created with less than 3 samples! ",
+            "Skipping...")
         return(NULL)
     }
     if (log.it)
@@ -434,7 +440,8 @@ diagplot.mds <- function(x,sample.list,method="spearman",log.it=TRUE,output="x11
          xlim=xlim,ylim=ylim,
          main="MDS plot",xlab="MDS 1",ylab="MDS 2",
          cex=0.9,cex.lab=0.9,cex.axis=0.9,cex.main=0.9)
-    text(mds.obj$points[,1],mds.obj$points[,2],labels=colnames(x),pos=3,cex=0.7)
+    text(mds.obj$points[,1],mds.obj$points[,2],labels=colnames(x),pos=3,
+        cex=0.7)
     grid()
     graphics.close(output)
     return(fil)
@@ -581,9 +588,9 @@ diagplot.cor <- function(mat,type=c("heatmap","correlogram"),output="x11",
         else
             notecex <- 0.7
         heatmap.2(cor.mat,col=colorRampPalette(c("yellow","grey","blue")),
-            revC=TRUE,trace="none",symm=TRUE,Colv=TRUE,cellnote=labs,keysize=1,
-            density.info="density",notecex=notecex,cexCol=0.9,cexRow=0.9,
-            font.lab=2)
+            revC=TRUE,trace="none",symm=TRUE,Colv=TRUE,cellnote=labs,
+            keysize=1,density.info="density",notecex=notecex,cexCol=0.9,
+            cexRow=0.9,font.lab=2)
     }
     graphics.close(output)
     return(fil)
@@ -634,25 +641,25 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
     check.text.args("which.plot",which.plot,c("meanvar","meandiff","gcbias",
         "lengthbias"),multiarg=TRUE)
     if (is.null(covar) && which.plot %in% c("gcbias","lengthbias"))
-        stopwrap("\"covar\" argument is required when \"which.plot\" is \"gcbias\" ",
-            "or \"lengthbias\"!")
+        stopwrap("\"covar\" argument is required when \"which.plot\" is ",
+            "\"gcbias\ or \"lengthbias\"!")
     if (is.norm)
         status <- "normalized"
     else
         status <- "raw"
     if (is.null(covar)) covar <- rep(NA,nrow(x))
     s <- newSeqExpressionSet(x,phenoData=AnnotatedDataFrame(
-        data.frame(conditions=as.class.vector(sample.list),row.names=colnames(x))),
-        featureData=AnnotatedDataFrame(data.frame(gc=covar,length=covar,
-        row.names=rownames(x))))
+        data.frame(conditions=as.class.vector(sample.list),
+        row.names=colnames(x))),featureData=AnnotatedDataFrame(data.frame(
+        gc=covar,length=covar,row.names=rownames(x))))
     switch(which.plot,
         meandiff = {
             fil <- vector("list",length(sample.list))
             names(fil) <- names(sample.list)
             for (n in names(sample.list)) {
                 if (length(sample.list[[n]])==1) {
-                    warnwrap("Cannot create a mean-difference plot with one sample ",
-                        "per condition! Skipping...")
+                    warnwrap("Cannot create a mean-difference plot with one ",
+                        "sample per condition! Skipping...")
                     next
                 }
                 pair.matrix <- combn(1:length(sample.list[[n]]),2)
@@ -660,8 +667,8 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
                 for (i in ncol(pair.matrix)) {
                     s1 <- sample.list[[n]][pair.matrix[1,i]]
                     s2 <- sample.list[[n]][pair.matrix[2,i]]
-                    fil[[n]][[i]] <- file.path(path,paste(which.plot,"_",status,
-                        "_",n,"_",s1,"_",s2,".",output,sep=""))
+                    fil[[n]][[i]] <- file.path(path,paste(which.plot,"_",
+                        status,"_",n,"_",s1,"_",s2,".",output,sep=""))
                     names(fil[[n]][i]) <- paste(s1,"vs",s2,sep="_")
                     graphics.open(output,fil[[n]][[i]])
                     MDPlot(s,y=pair.matrix[,i],main=paste("MD plot for ",n," ",
@@ -675,8 +682,8 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
             names(fil) <- names(sample.list)
             for (n in names(sample.list)) {    
                 if (length(sample.list[[n]])==1) {
-                    warnwrap("Cannot create a mean-variance plot with one sample ",
-                        "per condition! Skipping...")
+                    warnwrap("Cannot create a mean-variance plot with one ",
+                        "sample per condition! Skipping...")
                     next
                 }
                 pair.matrix <- combn(1:length(sample.list[[n]]),2)
@@ -688,14 +695,16 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
                         "_",n,"_",s1,"_",s2,".",output,sep=""))
                     names(fil[[n]][i]) <- paste(s1,"vs",s2,sep="_")
                     graphics.open(output,fil[[n]][[i]])
-                    suppressWarnings(meanVarPlot(s,main=paste("MV plot for ",n," ",
-                        status," samples ",s1," and ",s2,sep=""),cex.main=0.9))
+                    suppressWarnings(meanVarPlot(s,main=paste("MV plot for ",n,
+                        " ",status," samples ",s1," and ",s2,sep=""),
+                        cex.main=0.9))
                     graphics.close(output)
                 }
             }
         },
         gcbias = {
-            fil <- file.path(path,paste(which.plot,"_",status,".",output,sep=""))
+            fil <- file.path(path,paste(which.plot,"_",status,".",output,
+                sep=""))
             graphics.open(output,fil)
             biasPlot(s,"gc",xlim=c(0.1,0.9),log=TRUE,ylim=c(0,15),
                 main=paste("Expression - GC content ",status,sep=""))
@@ -703,7 +712,8 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
             graphics.close(output)
         },
         lengthbias = {
-            fil <- file.path(path,paste(which.plot,"_",status,".",output,sep=""))
+            fil <- file.path(path,paste(which.plot,"_",status,".",output,
+                sep=""))
             graphics.open(output,fil)
             biasPlot(s,"length",log=TRUE,ylim=c(0,10),
                 main=paste("Expression - Gene length ",status,sep=""))
@@ -786,7 +796,8 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
 #'}
 diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
     "countsbio", "saturation", "rnacomp", "biodist"),output="x11",
-    biodist.opts=list(p=NULL,pcut=NULL,name=NULL),path=NULL,is.norm=FALSE,...) {
+    biodist.opts=list(p=NULL,pcut=NULL,name=NULL),path=NULL,is.norm=FALSE,
+    ...) {
     if (is.null(path)) path <- getwd()
     # covars is a list of gc-content, factors, length, biotype, chromosomes, 
     # factors, basically copy of the noiseq object
@@ -797,8 +808,9 @@ diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
         stopwrap("\"covars\" argument is required with NOISeq specific plots!")
     else {
         covars$biotype <- as.character(covars$biotype)
-        names(covars$length) <- names(covars$gc) <- rownames(covars$chromosome) <- 
-            names(covars$biotype) <- rownames(x)
+        names(covars$length) <- names(covars$gc) <-
+            rownames(covars$chromosome) <- names(covars$biotype) <-
+            rownames(x)
     }
     if (which.plot=="biodist") {
         if (is.null(biodist.opts$p))
@@ -830,8 +842,8 @@ diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
             fil <- character(length(samples))
             names(fil) <- samples
             for (i in 1:length(samples)) {
-                fil[samples[i]] <- file.path(path,paste(which.plot,"_",samples[i],
-                    ".",output,sep=""))
+                fil[samples[i]] <- file.path(path,paste(which.plot,"_",
+                    samples[i],".",output,sep=""))
                 if (output %in% c("pdf","ps","x11"))
                     graphics.open(output,fil[samples[i]],width=9,height=7)
                 else
@@ -846,8 +858,8 @@ diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
             fil <- character(length(samples))
             names(fil) <- samples
             for (i in 1:length(samples)) {
-                fil[samples[i]] <- file.path(path,paste(which.plot,"_",samples[i],
-                    ".",output,sep=""))
+                fil[samples[i]] <- file.path(path,paste(which.plot,"_",
+                    samples[i],".",output,sep=""))
                 if (output %in% c("pdf","ps","x11"))
                     graphics.open(output,fil[samples[i]],width=9,height=7)
                 else
@@ -860,16 +872,23 @@ diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
             # For 10 saturation points
             diagplot.data <- NOISeq::dat(local.obj,k=0,ndepth=9,type=which.plot)
             d2s <- dat2save(diagplot.data)
-            fil <- diagplot.noiseq.saturation(d2s,output,covars$biotype,path=path)
+            fil <- diagplot.noiseq.saturation(d2s,output,covars$biotype,
+                path=path)
         },
         rnacomp = {
             if (ncol(local.obj)<3) {
-                warnwrap("RNA composition plot cannot be created with less than ",
-                    "3 samples! Skipping...")
+                warnwrap("RNA composition plot cannot be created with less ",
+                    "than 3 samples! Skipping...")
+                return(NULL)
+            }
+            if (ncol(local.obj)>12) {
+                warnwrap("RNA composition plot cannot be created with more ",
+                    "than 12 samples! Skipping...")
                 return(NULL)
             }
             diagplot.data <- NOISeq::dat(local.obj,type="cd")
-            fil <- file.path(path,paste(which.plot,"_",status,".",output,sep=""))
+            fil <- file.path(path,paste(which.plot,"_",status,".",output,
+                sep=""))
             graphics.open(output,fil)
             explo.plot(diagplot.data)
             grid()
@@ -914,8 +933,8 @@ diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
                 v=0.02
             )
             if (!is.null(biodist.opts$name))
-                fil <- file.path(path,paste(which.plot,"_",biodist.opts$name,".",
-                    output,sep=""))
+                fil <- file.path(path,paste(which.plot,"_",biodist.opts$name,
+                    ".",output,sep=""))
             else
                 fil <- file.path(path,paste(which.plot,".",output,sep=""))
             if (output %in% c("pdf","ps","x11"))
@@ -923,18 +942,22 @@ diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
             else
                 graphics.open(output,fil,width=1024,height=640)
             tryCatch( # A lot of times, there is a problem with this function
-                DE.plot(dummy,chromosomes=NULL,q=biodist.opts$pcut,graphic="distr"),
+                DE.plot(dummy,chromosomes=NULL,q=biodist.opts$pcut,
+                    graphic="distr"),
                 error=function(e) {
-                    disp("      Known problem with NOISeq and external p-values ",
-                        "detected! Trying to make a plot with alternative p-values ",
-                        "(median of p-value distribution)...")
+                    disp("      Known problem with NOISeq and external ",
+                        "p-values  detected! Trying to make a plot with ",
+                        "alternative p-values  (median of p-value ",
+                        "distribution)...")
                     fil="error"
                     tryCatch(
-                        DE.plot(dummy,chromosomes=NULL,q=quantile(biodist.opts$p,0.5),
+                        DE.plot(dummy,chromosomes=NULL,
+                            q=quantile(biodist.opts$p,0.5),
                             graphic="distr"),
                         error=function(e) {
-                            disp("      Cannot create DEG biotype plot! This is not ",
-                                "related to a problem with the results. Excluding...")
+                            disp("      Cannot create DEG biotype plot! This ",
+                                "is not related to a problem with the ",
+                                "results. Excluding...")
                             fil="error"
                         },
                         finally=""
@@ -1077,7 +1100,8 @@ diagplot.noiseq.saturation <- function(x,o,tb,path=NULL) {
         axis(1,at=pretty(xlim,5),labels=as.character(pretty(xlim,5)/1e+6),
             line=0.5)
         axis(2,at=pretty(ylim,5),line=0.5)
-        title(main=b,xlab="Depth in millions of reads",ylab="Detected features")
+        title(main=b,xlab="Depth in millions of reads",
+            ylab="Detected features")
         co <- 0
         for (n in colnames(y)) {
             co <- co + 1
@@ -1088,7 +1112,8 @@ diagplot.noiseq.saturation <- function(x,o,tb,path=NULL) {
         legend(
             x="bottomright",legend=colnames(y),xjust=1,yjust=0,
             box.lty=0,x.intersp=0.5,
-            col=colspace[1:length(colnames(y))],pch=pchspace[1:length(colnames(y))]
+            col=colspace[1:length(colnames(y))],
+            pch=pchspace[1:length(colnames(y))]
         )
     }
     graphics.close(o)
@@ -1303,7 +1328,8 @@ diagplot.volcano <- function(f,p,con=NULL,fcut=1,pcut=0.05,alt.names=NULL,
                     list(
                         name="down-regulated",
                         color="#00CD00",
-                        data=make.highcharts.points(f[down],p[down],alt.names[down])
+                        data=make.highcharts.points(f[down],p[down],
+                            alt.names[down])
                     ),
                     list(
                         name="unregulated",
@@ -1338,7 +1364,8 @@ diagplot.volcano <- function(f,p,con=NULL,fcut=1,pcut=0.05,alt.names=NULL,
                         marker=list(
                             enabled=FALSE
                         ),
-                        data=list(c(xlim[1],-log10(pcut)),c(xlim[2],-log10(pcut)))
+                        data=list(c(xlim[1],-log10(pcut)),c(xlim[2],
+                            -log10(pcut)))
                     )
                 )
             )
@@ -1483,19 +1510,20 @@ diagplot.filtered <- function(x,y,output="x11",path=NULL,...) {
     par(mfrow=c(2,2),mar=c(1,4,2,1),oma=c(1,1,1,1))
 
     # Chromosomes
-    barx.chr <- barplot(chr,space=0.5,ylim=c(0,max(chr)+ceiling(max(chr)/10)),
+    barx.chr <-barplot(chr,space=0.5,ylim=c(0,max(chr)+ceiling(max(chr)/10)),
         yaxt="n",xaxt="n",plot=FALSE)
     plot.new()
     plot.window(xlim=c(0,ceiling(max(barx.chr))),
         ylim=c(0,max(chr)+ceiling(max(chr)/10)),mar=c(1,4,1,1))
-    axis(2,at=pretty(0:(max(chr)+ceiling(max(chr)/10))),cex.axis=0.9,padj=1,font=2)
+    axis(2,at=pretty(0:(max(chr)+ceiling(max(chr)/10))),cex.axis=0.9,padj=1,
+        font=2)
     text(x=barx.chr,y=chr,label=barlab.chr,cex=0.7,font=2,col="green3",
         adj=c(0.5,-1.3))
     title(main="Filtered genes per chromosome",cex.main=1.1)
     mtext(side=2,text="Number of genes",line=2,cex=0.9,font=2)
     grid()
-    barplot(chr,space=0.5,ylim=c(0,max(chr)+ceiling(max(chr)/10)),col="blue3",
-        border="yellow3",yaxt="n",xaxt="n",font=2,add=TRUE)
+    barplot(chr,space=0.5,ylim=c(0,max(chr)+ceiling(max(chr)/10)),
+        col="blue3",border="yellow3",yaxt="n",xaxt="n",font=2,add=TRUE)
 
     # Biotypes
     barx.bt <- barplot(bt,space=0.5,ylim=c(0,max(bt)+ceiling(max(bt)/10)),
@@ -1503,7 +1531,8 @@ diagplot.filtered <- function(x,y,output="x11",path=NULL,...) {
     plot.new()
     plot.window(xlim=c(0,ceiling(max(barx.bt))),
         ylim=c(0,max(bt)+ceiling(max(bt)/10)),mar=c(1,4,1,1))
-    axis(2,at=pretty(0:(max(bt)+ceiling(max(bt)/10))),cex.axis=0.9,padj=1,font=2)
+    axis(2,at=pretty(0:(max(bt)+ceiling(max(bt)/10))),cex.axis=0.9,padj=1,
+        font=2)
     text(x=barx.bt,y=bt,label=barlab.bt,cex=0.7,font=2,col="blue",
         adj=c(0.5,-1.3),xpd=TRUE)
     title(main="Filtered genes per biotype",cex.main=1.1)
@@ -1521,16 +1550,17 @@ diagplot.filtered <- function(x,y,output="x11",path=NULL,...) {
     #axis(1,at=barx.per.chr,labels=names(per.chr),cex.axis=0.9,font=2,tcl=-0.3,
     #    col="lightgrey",las=2)
     axis(1,at=barx.per.chr,labels=FALSE,tcl=-0.3,col="lightgrey")
-    axis(2,at=seq(0,max(per.chr),length.out=5),labels=formatC(seq(0,max(per.chr),
-        length.out=5),digits=2,format="f"),cex.axis=0.9,padj=1,font=2)
-    text(barx.per.chr,par("usr")[3]-max(per.chr)/17,labels=names(per.chr),srt=45,
-        adj=c(1,1.1),xpd=TRUE,cex=0.9,font=2)
-    text(x=barx.per.chr,y=per.chr,label=per.chr.lab,cex=0.7,font=2,col="green3",
-        adj=c(0.5,-1.3),xpd=TRUE)
+    axis(2,at=seq(0,max(per.chr),length.out=5),labels=formatC(seq(0,
+        max(per.chr),length.out=5),digits=2,format="f"),cex.axis=0.9,padj=1,
+        font=2)
+    text(barx.per.chr,par("usr")[3]-max(per.chr)/17,labels=names(per.chr),
+        srt=45,adj=c(1,1.1),xpd=TRUE,cex=0.9,font=2)
+    text(x=barx.per.chr,y=per.chr,label=per.chr.lab,cex=0.7,font=2,
+        col="green3",adj=c(0.5,-1.3),xpd=TRUE)
     mtext(side=2,text="fraction of total genes",line=2,cex=0.9,font=2)
     grid()
-    barplot(per.chr,space=0.5,ylim=c(0,max(per.chr)),col="blue3",border="yellow3",
-        yaxt="n",xaxt="n",font=2,add=TRUE)
+    barplot(per.chr,space=0.5,ylim=c(0,max(per.chr)),col="blue3",
+        border="yellow3",yaxt="n",xaxt="n",font=2,add=TRUE)
 
     # Biotype percentage
     barx.per.bt <- barplot(per.bt,space=0.5,ylim=c(0,max(per.bt)),yaxt="n",
@@ -1551,8 +1581,8 @@ diagplot.filtered <- function(x,y,output="x11",path=NULL,...) {
         adj=c(0.5,-1.3),xpd=TRUE)
     mtext(side=2,text="fraction of total genes",line=2,cex=0.9,font=2)
     grid()
-    barplot(per.bt,space=0.5,ylim=c(0,max(per.bt)),col="red3",border="yellow3",
-        yaxt="n",xaxt="n",font=2,add=TRUE)
+    barplot(per.bt,space=0.5,ylim=c(0,max(per.bt)),col="red3",
+        border="yellow3",yaxt="n",xaxt="n",font=2,add=TRUE)
     
     graphics.close(output)
 
@@ -1621,16 +1651,17 @@ diagplot.venn <- function(pmat,fcmat=NULL,pcut=0.05,fcut=0.5,
         warnwrap("Illegal pcut argument! Using the default (0.05)")
     algs <- colnames(pmat)
     if (is.null(algs))
-        stopwrap("The p-value matrices must have the colnames attribute (names of ",
-            "statistical algorithms)!")
+        stopwrap("The p-value matrices must have the colnames attribute ",
+            "(names of statistical algorithms)!")
     if (!is.null(fcmat) && (is.null(colnames(fcmat)) ||
         length(intersect(colnames(pmat),colnames(fcmat)))!=length(algs)))
-        stopwrap("The fold change matrices must have the colnames attribute (names of ",
-            "statistical algorithms) and must be the same as in the p-value matrices!")
+        stopwrap("The fold change matrices must have the colnames attribute ",
+            "(names of statistical algorithms) and must be the same as in the ",
+            "p-value matrices!")
     nalg <- length(algs)
     if(nalg>5) {
-        warnwrap(paste("Cannot create a Venn diagram for more than 5 result sets!",
-            nalg,"found, only the first 5 will be used..."))
+        warnwrap(paste("Cannot create a Venn diagram for more than 5 result ",
+            "sets! ",nalg,"found, only the first 5 will be used..."))
         algs <- algs[1:5]
         nalg <- 5
     }
@@ -1657,21 +1688,24 @@ diagplot.venn <- function(pmat,fcmat=NULL,pcut=0.05,fcut=0.5,
             dereg = {
                 for (a in aliases) {
                     results[[a]] <-
-                        genes[which(pmat[,algs[a]]<pcut & abs(fcmat[,algs[a]])>=fcut)]
+                        genes[which(pmat[,algs[a]]<pcut & abs(
+                        fcmat[,algs[a]])>=fcut)]
                     counts[[areas[[a]]]] <- length(results[[a]])
                 }
             },
             up = {
                 for (a in aliases) {
                     results[[a]] <-
-                        genes[which(pmat[,algs[a]]<pcut & fcmat[,algs[a]]>=fcut)]
+                        genes[which(pmat[,algs[a]]<pcut &
+                        fcmat[,algs[a]]>=fcut)]
                     counts[[areas[[a]]]] <- length(results[[a]])
                 }
             },
             down = {
                 for (a in aliases) {
                     results[[a]] <-
-                        genes[which(pmat[,algs[a]]<pcut & fcmat[,algs[a]]<=-fcut)]
+                        genes[which(pmat[,algs[a]]<pcut &
+                        fcmat[,algs[a]]<=-fcut)]
                     counts[[areas[[a]]]] <- length(results[[a]])
                 }
             }
@@ -2303,7 +2337,8 @@ diagplot.roc <- function(truth,p,sig=0.05,x="fpr",y="tpr",output="x11",
         disp("Calculating AUC for ",n)
         auc <- 0
         for (i in 2:length(ROC[[n]][[toupper(y)]])) {
-            auc <- auc + 0.5*(ROC[[n]][[toupper(x)]][i]-ROC[[n]][[toupper(x)]][i-1])*
+            auc <- auc +
+                0.5*(ROC[[n]][[toupper(x)]][i]-ROC[[n]][[toupper(x)]][i-1])*
                 (ROC[[n]][[toupper(y)]][i]+ROC[[n]][[toupper(y)]][i-1])
         }
         ROC[[n]]$AUC <- abs(auc)
@@ -2333,10 +2368,12 @@ diagplot.roc <- function(truth,p,sig=0.05,x="fpr",y="tpr",output="x11",
         axis(1,at=pretty(xlim,10))
         axis(2,at=pretty(ylim,10))
         for (n in names(ROC))
-            lines(ROC[[n]][[toupper(x)]],ROC[[n]][[toupper(y)]],col=colspace[n],...)
+            lines(ROC[[n]][[toupper(x)]],ROC[[n]][[toupper(y)]],
+                col=colspace[n],...)
         grid()
         title(xlab=ax.name[[x]],ylab=ax.name[[y]])
-        auc.text <- as.character(sapply(ROC,function(x) round(x$AUC,digits=3)))
+        auc.text <- as.character(sapply(ROC,function(x)
+            round(x$AUC,digits=3)))
         legend(x="bottomright",col=colspace,lty=1,cex=0.9,
             legend=paste(names(ROC)," (AUC = ",auc.text,")",sep=""))
 
@@ -2523,7 +2560,8 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 disp("Processing ",n)
                 z <- sort(pmat[,n])
                 for (i in 1:N) {
-                    nn <- length(intersect(names(z[1:i]),names(which(truth==0))))
+                    nn <- length(intersect(names(z[1:i]),
+                        names(which(truth==0))))
                     if (nn==0)
                         ftdr.list[[n]][i] <- 1
                     else
@@ -2545,7 +2583,8 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 disp("Processing ",n)
                 z <- sort(pmat[,n],decreasing=TRUE)
                 for (i in 1:N) {
-                    nn <- length(intersect(names(z[1:i]),names(which(truth!=0))))
+                    nn <- length(intersect(names(z[1:i]),
+                        names(which(truth!=0))))
                     if (nn==0)
                         ftdr.list[[n]][i] <- 1
                     else
@@ -2589,7 +2628,8 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 grid()
                 title(main="Selected genes vs False Positives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="topleft",legend=names(ftdr.list),col=colspace,lty=1)
+                legend(x="topleft",legend=names(ftdr.list),
+                    col=colspace,lty=1)
             },
             tpc = {
                 plot.window(xlim,ylim)
@@ -2601,7 +2641,8 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 grid()
                 title(main="Selected genes vs True Positives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="bottomright",legend=names(ftdr.list),col=colspace,lty=1)
+                legend(x="bottomright",legend=names(ftdr.list),
+                    col=colspace,lty=1)
             },
             fnc = {
                 plot.window(xlim,ylim,log="y")
@@ -2613,7 +2654,8 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 grid()
                 title(main="Selected genes vs False Negatives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="topleft",legend=names(ftdr.list),col=colspace,lty=1)
+                legend(x="topleft",legend=names(ftdr.list),
+                    col=colspace,lty=1)
             },
             tnc = {
                 plot.window(xlim,ylim)
@@ -2625,7 +2667,8 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 grid()
                 title(main="Selected genes vs True Negatives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="bottomright",legend=names(ftdr.list),col=colspace,lty=1)
+                legend(x="bottomright",legend=names(ftdr.list),col=colspace,
+                    lty=1)
             }    
         )
 
@@ -2741,7 +2784,8 @@ diagplot.avg.ftd <- function(ftdr.obj,output="x11",path=NULL,draw=TRUE,...) {
                 grid()
                 title(main="Selected genes vs False Positives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="topleft",legend=colnames(means),col=colspace,lty=1)
+                legend(x="topleft",legend=colnames(means),col=colspace,
+                    lty=1)
             },
             tpc = {
                 plot.window(xlim,ylim)
@@ -2753,7 +2797,8 @@ diagplot.avg.ftd <- function(ftdr.obj,output="x11",path=NULL,draw=TRUE,...) {
                 grid()
                 title(main="Selected genes vs True Positives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="bottomright",legend=colnames(means),col=colspace,lty=1)
+                legend(x="bottomright",legend=colnames(means),col=colspace,
+                    lty=1)
             },
             fnc = {
                 plot.window(xlim,ylim,log="y")
@@ -2765,7 +2810,8 @@ diagplot.avg.ftd <- function(ftdr.obj,output="x11",path=NULL,draw=TRUE,...) {
                 grid()
                 title(main="Selected genes vs False Negatives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="topleft",legend=colnames(means),col=colspace,lty=1)
+                legend(x="topleft",legend=colnames(means),col=colspace,
+                    lty=1)
             },
             tnc = {
                 plot.window(xlim,ylim)
@@ -2777,7 +2823,8 @@ diagplot.avg.ftd <- function(ftdr.obj,output="x11",path=NULL,draw=TRUE,...) {
                 grid()
                 title(main="Selected genes vs True Negatives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="bottomright",legend=colnames(means),col=colspace,lty=1)
+                legend(x="bottomright",legend=colnames(means),col=colspace,
+                    lty=1)
             }
         )
         

@@ -47,8 +47,8 @@
                 "rcv"),
         export.counts.table = FALSE,
         restrict.cores = 0.6, report = TRUE, report.top = 0.1,
-        report.template = "default", verbose = TRUE,
-        run.log = TRUE, ...)
+        report.template = "default", save.gene.model = TRUE,
+        verbose = TRUE, run.log = TRUE, ...)
 }
 \arguments{
     \item{counts}{a text tab-delimited file containing gene
@@ -83,9 +83,12 @@
     only gene accessions and thus be less comprehensible.
     Generally, it's best to set the \code{annotation}
     parameter to \code{"download"} to ensure the most
-    comprehensible results. Finally, counts can be a data
-    frame satisfying the above conditions. It is a data frame
-    by default when \code{read2count} is used.}
+    comprehensible results. Counts can also be a data frame
+    satisfying the above conditions. It is a data frame by
+    default when \code{read2count} is used. Finally, counts 
+    can be a list representing the gene model (exon counts 
+    for each gene) constructed by the 
+    \code{\link{construct.gene.model}} function.}
 
     \item{sample.list}{a list containing condition names and
     the samples under each condition. It should have the
@@ -513,6 +516,13 @@
     \item{report.template}{an HTML template to use for the
     report. Do not change this unless you know what you are
     doing.}
+
+    \item{save.gene.model}{in case of exon analysis, a list
+    with exon counts for each gene will be saved to the file
+    \code{export.where/data/gene_model.RData}. This file can
+    be used as input to metaseqR for exon count based 
+    analysis, in order to avoid the time consuming step of 
+    assembling the counts for each gene from its exons}
 
     \item{verbose}{print informative messages during
     execution? Defaults to \code{TRUE}.}

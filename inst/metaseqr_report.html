@@ -2,7 +2,7 @@
 
 <html>
 <head>
-<title>metaseqr report</title>
+<title>metaseqR report</title>
 <meta http-equiv="Content-Type" content="text/html;">
 <link type="text/css" rel="stylesheet" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
 <link type="text/css" rel="stylesheet" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables_themeroller.css">
@@ -10,7 +10,7 @@
 <link type="text/css" rel="stylesheet" href="http://cdn.jsdelivr.net/fancybox/2.1.5/helpers/jquery.fancybox-buttons.css">
 <link type="text/css" rel="stylesheet" href="http://cdn.jsdelivr.net/fancybox/2.1.5/helpers/jquery.fancybox-thumbs.css">
 <link type="text/css" rel="stylesheet" href="http://cdn.jsdelivr.net/fancybox/2.1.5/jquery.fancybox.css">
-<link type="text/css" rel="stylesheet" href="styles.css">
+<link type="text/css" rel="stylesheet" href="media/styles.css">
 <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
 <script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
 <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
@@ -34,10 +34,10 @@
 <table class="headContainer">
     <tr> 
         <td style="padding:0px; border-width:0px; width:20%;">
-            <img src="logo.png" alt="logo here" height="100%">
+            <img src="media/logo.png" alt="logo here" height="100%">
         </td>
         <td style="padding:5px; border-width:0px; text-align:center; width:80%">
-            <span class="pageTitle"><span style="font-size:1.4em; font-weight:bold">metaseqr analysis report</span></br></br><%=basename(PROJECT.PATH$main)%></span>
+            <span class="pageTitle"><span style="font-size:1.4em; font-weight:bold">metaseqR analysis report</span></br></br><%=basename(PROJECT.PATH$main)%></span>
         </td>
     </tr>
     <tr> 
@@ -178,7 +178,7 @@
                         </div>
                     </td>
                     <td class="mainContainer">
-                        <div id="loading" style="margin:auto; position:absolute; z-index:1000; width:350px; height:350px; background:url(loader.gif) no-repeat; cursor:wait;"></div>
+                        <div id="loading" style="margin:auto; position:absolute; z-index:1000; width:350px; height:350px; background:url(media/loader.gif) no-repeat; cursor:wait;"></div>
                         <div id="report" style="display:none; width:75%;"> <!-- Start main accordion container -->
                             <h3 id="summary" class="title">Summary </h3>
                             <div id="summary_container"> <!-- Start summary container -->
@@ -269,7 +269,7 @@
                                                 counter <- counter + 1
                                                 msg.gene.filters.expression.quantile <- paste(
                                                     latin.numbered[counter]," genes with read counts below the ",100*gene.filters$expression$quantile,"<sup>th</sup> ",
-                                                    "quantile of the normalized counts distribution (",length(gene.filter.result$expression$quantile)," genes with cutoff value",
+                                                    "quantile of the normalized counts distribution (",length(gene.filter.result$expression$quantile)," genes with cutoff value ",
                                                     gene.filter.cutoff$expression$quantile," normalized read counts)",sep=""
                                                 )
                                             }
@@ -328,7 +328,7 @@
                                             msg.contrast[cnt] <- paste("for the contrast ",gsub("_vs_"," versus ",cnt),", no statistical threshold defined",sep="")
                                         } else {
                                             if (adjust.method!="none") {
-                                                add.text.p <- paste(" (",length(which(adj.sum.p.list[[cnt]]<plasm)),")",sep="")
+                                                add.text.p <- paste(" (",length(which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm)),")",sep="")
                                                 has.fdr.text <- " (FDR or adjusted p-value)"
                                             }
                                             else
@@ -336,7 +336,7 @@
                                             if (length(strsplit(cnt,"_vs_")[[1]])==2) {
                                                 tmp <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(sum.p.list[[cnt]]<plasm),],log.offset))
                                                 if (adjust.method!="none") {
-                                                    tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(adj.sum.p.list[[cnt]]<plasm),],log.offset))
+                                                    tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm),],log.offset))
                                                     add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
                                                     add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
                                                     add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
@@ -380,14 +380,14 @@
                                         cat(paste(names(exon.filters),collapse=", "),"</br>")
                                         for (ef in names(exon.filters)) {
                                             cat("<ul>")
-                                            cat("<li><em><span style=\"font-size:1em\">",ef,"</span></em><ul>")
+                                            cat("<li><em><span style=\"font-size:1em\">",ef,"</span></em><ul>",sep="")
                                             for (efp in names(exon.filters[[ef]])) {
                                                 if (length(exon.filters[[ef]][[efp]])==1 && is.function(exon.filters[[ef]][[efp]]))
                                                     cat("<li>custom function</li>")
                                                 else if (length(exon.filters[[ef]][[efp]])==1)
-                                                    cat("<li>",paste(efp,exon.filters[[ef]][[efp]],sep=": "),"</li>")
+                                                    cat("<li>",paste(efp,exon.filters[[ef]][[efp]],sep=": "),"</li>",sep="")
                                                 else if (length(exon.filters[[ef]][[efp]])>1)
-                                                    cat("<li>",paste(efp,paste(exon.filters[[ef]][[efp]],collapse=", "),sep=": "),"</li>")
+                                                    cat("<li>",paste(efp,paste(exon.filters[[ef]][[efp]],collapse=", "),sep=": "),"</li>",sep="")
                                             }
                                             cat("</ul></li>")
                                             cat("</ul>")
@@ -404,14 +404,14 @@
                                         cat(paste(names(gene.filters),collapse=", "),"</br>")
                                         for (gf in names(gene.filters)) {
                                             cat("<ul>")
-                                            cat("<li><em><span style=\"font-size:1em\">",gf,"</span></em><ul>")
+                                            cat("<li><em><span style=\"font-size:1em\">",gf,"</span></em><ul>",sep="")
                                             for (gfp in names(gene.filters[[gf]])) {
                                                 if (length(gene.filters[[gf]][[gfp]])==1 && is.function(gene.filters[[gf]][[gfp]]))
                                                     cat("<li>custom function</li>")
                                                 else if (length(gene.filters[[gf]][[gfp]])==1)
-                                                    cat("<li>",paste(gfp,gene.filters[[gf]][[gfp]],sep=": "),"</li>")
+                                                    cat("<li>",paste(gfp,gene.filters[[gf]][[gfp]],sep=": "),"</li>",sep="")
                                                 else if (length(gene.filters[[gf]][[gfp]])>1)
-                                                    cat("<li>",paste(gfp,paste(gene.filters[[gf]][[gfp]],collapse=", "),sep=": "),"</li>")
+                                                    cat("<li>",paste(gfp,paste(gene.filters[[gf]][[gfp]],collapse=", "),sep=": "),"</li>",sep="")
                                             }
                                             cat("</ul></li>")
                                             cat("</ul>")
@@ -558,7 +558,7 @@
                                                 else
                                                     plasm <- pcut
                                                 if (adjust.method!="none") {
-                                                    add.text.p <- paste("(",length(which(adj.sum.p.list[[cnt]]<plasm)),")",sep="")
+                                                    add.text.p <- paste("(",length(which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm)),")",sep="")
                                                     has.fdr.text <- "(FDR or adjusted p-value)"
                                                 }
                                                 else
@@ -566,7 +566,7 @@
                                                 if (length(strsplit(cnt,"_vs_")[[1]])==2) {
                                                     tmp.p <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(sum.p.list[[cnt]]<plasm),],log.offset))
                                                     if (adjust.method!="none") {
-                                                        tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(adj.sum.p.list[[cnt]]<plasm),],log.offset))
+                                                        tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm),],log.offset))
                                                         add.text.fu <- paste("(",length(which(tmp.f>=1)),")",sep="")
                                                         add.text.fd <- paste("(",length(which(tmp.f<=-1)),")",sep="")
                                                         add.text.fn <- paste("(",length(which(abs(tmp.f)<1)),")",sep="")
@@ -590,7 +590,7 @@
                                 if (run.log) {
                                     cat("<h4 id=\"summary_analysis_log\" class=\"subtitle\">Run log</h4>")
                                     cat("<div id=\"summary_log_container\">")
-                                    log.string <- paste(readLines(file.path(PROJECT.PATH$main,"metaseqr_run.log")),collapse="---EOL---")
+                                    log.string <- paste(readLines(file.path(PROJECT.PATH$logs,"metaseqr_run.log")),collapse="---EOL---")
                                     cat(gsub("---EOL---","</br>",log.string))
                                     cat("</div>")
                                 }

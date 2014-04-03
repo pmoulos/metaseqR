@@ -820,7 +820,7 @@ stat.nbpseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
         #}
     }
     for (con.name in names(contrast.list)) {
-        disp("  Contrast: ", con.name,"\n")
+        disp("  Contrast: ", con.name)
         con <- contrast.list[[con.name]]
         cons <- unique(unlist(con))
         if (length(con)==2) {

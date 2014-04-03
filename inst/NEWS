@@ -9,9 +9,10 @@ added:
     - Permutation methods for combining p-values from multiple statistics
     - More interactive and compact report
 fixed:
-    - A bug in exon filters resulting in removing genes/transcripts with only one
-    exon
-    - A serious bug in exon filters causing wrong genes to be filtered out under circumstances
+    - A bug in exon filters resulting in removing genes/transcripts with only 
+    one exon
+    - A serious bug in exon filters causing wrong genes to be filtered out under
+    circumstances
 
 changes in version 0.91.0 (2014-01-03)
 added:
@@ -56,8 +57,8 @@ fixed:
 
 changes in version 0.99.2 (2014-03-14)
 added:
-    - Ability to display only the top x% of significant genes to avoid excessively
-    big reports
+    - Ability to display only the top x% of significant genes to avoid 
+    excessively big reports
 fixed:
     - More code and codestyle changes to comply with Bioconductor's guidelines
 
@@ -72,7 +73,15 @@ changes in version 0.99.4 (2014-03-18)
 added:
 fixed:
     - Removed all <<- assignments
-    - Changed the Depends of DESCRIPTION file to import less packages in the main
-    environment
+    - Changed the Depends of DESCRIPTION file to import less packages in the 
+    main environment
     - Added qvalue package to Depends as there was a problem with NBPSeq
 
+changes in version 0.99.5 (2014-03-31)
+added:
+    - Changed directory structure of the report to look more organized and pro
+    - Added the ability to save and retrieve the gene model counts list (counts
+    for each exon) in an .RData file to be reused in another analysis later, as
+    summarizing genes is one of the most time-consuming parts.
+fixed:
+    - Minor problems with the report

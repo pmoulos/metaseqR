@@ -53,9 +53,10 @@
 #' not be available. If the HUGO gene symbols are missing, the final annotation 
 #' will contain only gene accessions and thus be less comprehensible. Generally, 
 #' it's best to set the \code{annotation} parameter to \code{"download"} to ensure 
-#' the most comprehensible results. Finally, counts can be a data frame satisfying 
-#' the above conditions. It is a data frame by default when \code{read2count} is 
-#' used.
+#' the most comprehensible results. Counts can be a data frame satisfying the 
+#' above conditions. It is a data frame by default when \code{read2count} is used.
+#' Finally, counts can be a list representing the gene model (exon counts for
+#' each gene) constructed by the \code{\link{construct.gene.model}} function.
 #' @param sample.list a list containing condition names and the samples under each 
 #' condition. It should have the format \code{sample.list <-}
 #' \code{list(ConditionA=c("Sample_A1",} \code{"Sample_A2", "Sample_A3"),} 
@@ -325,6 +326,11 @@
 #' to report all the statistically significant genes.
 #' @param report.template an HTML template to use for the report. Do not change
 #' this unless you know what you are doing.
+#' @param save.gene.model in case of exon analysis, a list with exon counts for
+#' each gene will be saved to the file \code{export.where/data/gene_model.RData}.
+#' This file can be used as input to metaseqR for exon count based analysis, in
+#' order to avoid the time consuming step of assembling the counts for each gene
+#' from its exons.
 #' @param verbose print informative messages during execution? Defaults to
 #' \code{TRUE}.
 #' @param run.log write a log file of the \code{metaseqr} run using package log4r.
@@ -821,6 +827,7 @@ metaseqr <- function(
     report=TRUE,
     report.top=0.1,
     report.template="default",
+    save.gene.model=TRUE,
     verbose=TRUE,
     run.log=TRUE,
     ...
@@ -832,9 +839,10 @@ metaseqr <- function(
     if (missing(counts) && (missing(sample.list) || is.list(sample.list)))
         stop("You must provide a file with genomic region (gene, exon, etc.) ",
             "counts or an input targets file to create input from! If the ",
-            "counts file is missing, sample.list cannot be missing or a list! ",
-            "It must be a targets file with at least three columns! See the ",
-            "read.targets function.")
+            "counts file is missing, sample.list cannot be missing or it must ",
+            "be a targets file with at least three columns! See the ",
+            "read.targets function. counts may also be a gene model list ",
+            "(see the documentation)")
     if (missing(sample.list) || (!is.list(sample.list) &&
         !file.exists(sample.list)))
         stop("You must provide a list with condition names and sample names ",
@@ -875,7 +883,7 @@ metaseqr <- function(
         run.log <- FALSE
     }
     if (run.log)
-        logger <- create.logger(logfile=file.path(PROJECT.PATH$main,
+        logger <- create.logger(logfile=file.path(PROJECT.PATH$logs,
             "metaseqr_run.log"),level=2,logformat="%d %c %m")
     else
         logger <- NULL
@@ -887,7 +895,7 @@ metaseqr <- function(
     # Check if sample names match in file/df and list, otherwise meaningless to proceed
     if (!from.raw)
     {
-        if (!is.data.frame(counts))
+        if (!is.data.frame(counts) && !is.list(counts))
         {
             if (file.exists(counts))
             {
@@ -897,12 +905,14 @@ metaseqr <- function(
             else
                 stopwrap("The counts file you provided does not exist!")
         }
-        else
+        else if (is.data.frame(counts))
             aline <- colnames(counts)
+        else if (is.list(counts))
+            aline <- names(counts)
         samples <- unlist(sample.list,use.names=FALSE)
         if (length(which(!is.na(match(samples,aline)))) != length(samples))
-            stopwrap("The sample names provided in the counts file do not ",
-                "match with those of the sample.list!")
+            stopwrap("The sample names provided in the counts file/list do ",
+                "not match with those of the sample.list!")
     }
 
     file.type <- tolower(file.type[1])
@@ -922,14 +932,25 @@ metaseqr <- function(
     export.stats <- tolower(export.stats)
     if (!is.null(preset)) preset <- tolower(preset[1])
 
-    if (!is.data.frame(counts) && !is.null(counts))
+    if (!is.data.frame(counts) && !is.null(counts) && !is.list(counts))
     {
         check.file.args("counts",counts)
         counts.name <- basename(counts)
     }
+    else if (is.list(counts))
+    {
+        counts.name <- "previously stored gene model"
+    }
     else
     {
         counts.name <- "imported custom data frame"
+    }
+
+    if (is.list(counts) && count.type=="exon" && annotation=="embedded")
+    {
+        warnwrap("annotation cannot be \"embedded\" when importing a stored ",
+            "gene model! Switching to \"download\"...")
+        annotation <- "download"
     }
 
     if (meta.p %in% c("weight","dperm.weight") && sum(weight)>1)
@@ -1211,7 +1232,7 @@ metaseqr <- function(
         #    disp("Reading stored exon annotation for ",org,"...")
         #    exon.data <- read.annotation(org,count.type)
         #}
-        else if (annotation=="embedded") 
+        else if (annotation=="embedded")
         {
             # The following should work if annotation elements are arranged in 
             # MeV-like data style
@@ -1245,56 +1266,71 @@ metaseqr <- function(
             colnames(exon.data)[id.col] <- "exon_id"
         }
 
-        if (annotation!="embedded") # Else everything is provided and done
+        # Else everything is provided and done
+        if (!is.list(counts))
         {
-            if (!is.null(counts)) # Otherwise it's coming ready from read2count
+            if (annotation!="embedded") 
             {
-                if (!is.data.frame(counts)) # Else it's already here
+                if (!is.null(counts)) # Otherwise it's coming ready from read2count
                 {
-                    disp("Reading counts file ",counts.name,"...")
-                    exon.counts <- read.delim(counts)
+                    if (!is.data.frame(counts) && !is.list(counts))
+                    {
+                        disp("Reading counts file ",counts.name,"...")
+                        exon.counts <- read.delim(counts)
+                    }
+                    else # Already a data frame as input
+                        exon.counts <- counts
+                    rownames(exon.counts) <- as.character(exon.counts[,id.col])
+                    exon.counts <- exon.counts[,unlist(sample.list,
+                        use.names=FALSE)]
                 }
-                else # Already a data frame as input
-                    exon.counts <- counts
-                rownames(exon.counts) <- as.character(exon.counts[,id.col])
-                exon.counts <- exon.counts[,unlist(sample.list,
-                    use.names=FALSE)]
-            }
-            else # Coming from read2count
-            {
-                if (from.raw) # Double check
+                else # Coming from read2count
                 {
-                    r2c <- read2count(file.list,file.type,exon.data,
-                        multic=multic)
-                    exon.counts <- r2c$counts
-                    if (is.null(libsize.list))
-                        libsize.list <- r2c$libsize
-                    if (export.counts.table) {
-                        disp("Exporting raw read counts table to ",
-                            file.path(PROJECT.PATH[["lists"]],
-                            "raw_counts_table.txt.gz"))
-                        res.file <- file.path(PROJECT.PATH[["lists"]],
-                            "raw_counts_table.txt.gz")
-                        gzfh <- gzfile(res.file,"w")
-                        write.table(cbind(exon.data[rownames(exon.counts),],
-                            exon.counts),gzfh,sep="\t",row.names=FALSE,
-                            quote=FALSE)
-                        close(gzfh)
+                    if (from.raw) # Double check
+                    {
+                        r2c <- read2count(file.list,file.type,exon.data,
+                            multic=multic)
+                        exon.counts <- r2c$counts
+                        if (is.null(libsize.list))
+                            libsize.list <- r2c$libsize
+                        if (export.counts.table) {
+                            disp("Exporting raw read counts table to ",
+                                file.path(PROJECT.PATH[["lists"]],
+                                "raw_counts_table.txt.gz"))
+                            res.file <- file.path(PROJECT.PATH[["lists"]],
+                                "raw_counts_table.txt.gz")
+                            gzfh <- gzfile(res.file,"w")
+                            write.table(cbind(
+                                exon.data[rownames(exon.counts),],
+                                exon.counts),gzfh,sep="\t",row.names=FALSE,
+                                quote=FALSE)
+                            close(gzfh)
+                        }
                     }
                 }
             }
-        }
-        exon.counts <- cbind(exon.data[rownames(exon.counts),c("start","end",
-            "exon_id","gene_id")],exon.counts[,unlist(sample.list,
-            use.names=FALSE)])
+            exon.counts <- cbind(exon.data[rownames(exon.counts),c("start","end",
+                "exon_id","gene_id")],exon.counts[,unlist(sample.list,
+                use.names=FALSE)])
 
-        # Get the exon counts per gene model
-        disp("Checking chromosomes in exon counts and gene annotation...")
-        gene.data <- reduce.gene.data(exon.data[rownames(exon.counts),],
-            gene.data)
-        disp("Processing exons...")
-        the.counts <- construct.gene.model(exon.counts,sample.list,gene.data,
-            multic=multic)
+            # Get the exon counts per gene model
+            disp("Checking chromosomes in exon counts and gene annotation...")
+            gene.data <- reduce.gene.data(exon.data[rownames(exon.counts),],
+                gene.data)
+            disp("Processing exons...")
+            the.counts <- construct.gene.model(exon.counts,sample.list,gene.data,
+                multic=multic)
+
+            if (save.gene.model)
+            {
+                disp("Saving gene model to ",file.path(PROJECT.PATH[["data"]],
+                    "gene_model.RData"))
+                save(the.counts,file=file.path(PROJECT.PATH$data,
+                    "gene_model.RData"),compress=TRUE)
+            }
+        }
+        else # Retrieved gene model
+            the.counts <- counts
 
         # Apply exon filters
         if (!is.null(exon.filters))
@@ -2281,7 +2317,7 @@ metaseqr <- function(
         if (!is.null(report.template$css))
         {
             if (file.exists(report.template$css))
-                file.copy(from=report.template$css,to=PROJECT.PATH$main)
+                file.copy(from=report.template$css,to=PROJECT.PATH$media)
             else
                 warnwrap(paste("The stylesheet file",report.template$css,
                     "was not ","found! The HTML report will NOT be styled."))
@@ -2292,7 +2328,7 @@ metaseqr <- function(
         if (!is.null(report.template$logo))
         {
             if (file.exists(report.template$logo))
-                file.copy(from=report.template$logo,to=PROJECT.PATH$main)
+                file.copy(from=report.template$logo,to=PROJECT.PATH$media)
             else
                 warnwrap(paste("The report logo image",report.template$logo,
                     "was not found!"))
@@ -2302,7 +2338,7 @@ metaseqr <- function(
         if (!is.null(report.template$loader))
         {
             if (file.exists(report.template$loader))
-                file.copy(from=report.template$loader,to=PROJECT.PATH$main)
+                file.copy(from=report.template$loader,to=PROJECT.PATH$media)
             else
                 warnwrap(paste("The report logo image",report.template$loader,
                     "was not found!"))
