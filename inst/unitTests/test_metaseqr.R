@@ -1,7 +1,8 @@
 test_metaseqr <- function() {
     data("mm9.gene.data",package="metaseqR")
     ex.dir <- tempdir()
-    result <- metaseqr(
+
+    result.1 <- metaseqr(
         counts=mm9.gene.counts,
         sample.list=sample.list.mm9,
         contrast=c("e14.5_vs_adult_8_weeks"),
@@ -10,7 +11,8 @@ test_metaseqr <- function() {
         org="mm9",
         count.type="gene",
         normalization="edger",
-        statistics="edger",
+        statistics=c("edger","limma"),
+        meta.p="simes",
         preset="medium.basic",
         qc.plots="mds",
         fig.format="png",
@@ -20,6 +22,6 @@ test_metaseqr <- function() {
     checkTrue(file.exists(file.path(ex.dir,"index.html")))
     checkTrue(file.exists(file.path(ex.dir,"plots","qc","mds.png")))
     checkTrue(file.exists(file.path(ex.dir,"lists")))
-    checkTrue(nrow(result[[1]][[1]])>0)
-    checkEqualsNumeric(ncol(result[[1]][[1]]),12)
+    checkTrue(nrow(result.1[[1]][[1]])>0)
+    checkEqualsNumeric(ncol(result.1[[1]][[1]]),16)
 }

@@ -85,3 +85,9 @@ added:
     summarizing genes is one of the most time-consuming parts.
 fixed:
     - Minor problems with the report
+
+changes in version 0.99.6 (2014-04-09)
+added:
+    - Example on how to estimate statistical test weights in the vignette
+fixed:
+    - Bug when exporting flags when gene or exon filters are NULL

@@ -1948,11 +1948,16 @@ metaseqr <- function(
         flags <- gene.filter.flags
     else if (count.type=="exon")
     {
-        flags <- cbind(gene.filter.flags,
-            as.matrix(exon.filter.flags[rownames(gene.filter.flags),]))
-        nams <- c(colnames(gene.filter.flags),colnames(exon.filter.flags))
-        rownames(flags) <- rownames(gene.filter.flags)
-        colnames(flags) <- nams
+        if (!is.null(exon.filter.flags))
+        {
+            flags <- cbind(gene.filter.flags,
+                as.matrix(exon.filter.flags[rownames(gene.filter.flags),]))
+            nams <- c(colnames(gene.filter.flags),colnames(exon.filter.flags))
+            rownames(flags) <- rownames(gene.filter.flags)
+            colnames(flags) <- nams
+        }
+        else
+            flags <- gene.filter.flags
     }
     
     disp("Building output files...")
@@ -1988,7 +1993,7 @@ metaseqr <- function(
                 gene.counts.unnorm.filtered,export.scale,log.offset)
         else
             raw.list.filtered <- NULL
-        if ("flags" %in% export.what)
+        if ("flags" %in% export.what && !is.null(flags))
             all.flags <- rbind(
                 matrix(1,nrow(gene.counts.zero),ncol(flags)),
                     flags[rownames(gene.counts.dead),]

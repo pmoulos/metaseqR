@@ -646,7 +646,7 @@ stat.bayseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
     else
         baySeq::libsizes(CD) <- unlist(libsize.list)
     for (con.name in names(contrast.list)) {
-        disp("  Contrast: ", con.name,"\n")
+        disp("  Contrast: ", con.name)
         con <- contrast.list[[con.name]]
         cd <- CD[,names(unlist(con))]
         if (length(con)==2)
