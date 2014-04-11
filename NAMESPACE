@@ -53,6 +53,7 @@ importFrom("baySeq",topCounts)
 
 export(as.class.vector)
 export(calc.otr)
+export(calc.f1score)
 export(check.contrast.format)
 export(check.file.args)
 export(check.libsize)

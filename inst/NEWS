@@ -91,3 +91,10 @@ added:
     - Example on how to estimate statistical test weights in the vignette
 fixed:
     - Bug when exporting flags when gene or exon filters are NULL
+
+changes in version 1.0.0 (2014-04-11)
+added:
+    - Function to calculate the F1-score (or harmonic mean of precision and
+    recall)
+    - Mature and tested enough to go from 0.x.y version to 1.0.0
+fixed:

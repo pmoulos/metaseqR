@@ -639,3 +639,66 @@ calc.otr <- function(truth,p,sig=0.05) {
     names(otr) <- rownames(result)
     return(list(result=result,otr=otr))
 }
+
+#' Calculate the F1-score
+#'
+#' This function calculates the F1 score (2*(precision*recall/precision+racall)
+#' or 2*TP/(2*TP+FP+FN) given a matrix of p-values (one for each statistical test
+#' used) and a vector of ground truth (DE or non-DE). This function serves as a
+#' method evaluation helper.
+#'
+#' @param truth the ground truth differential expression vector. It should contain
+#' only zero and non-zero elements, with zero denoting non-differentially expressed
+#' genes and non-zero, differentially expressed genes. Such a vector can be obtained
+#' for example by using the \code{\link{make.sim.data.sd}} function, which creates
+#' simulated RNA-Seq read counts based on real data. It MUST be named with gene
+#' names, the same as in \code{p}.
+#' @param p a p-value matrix whose rows correspond to each element in the
+#' \code{truth} vector. If the matrix has a \code{colnames} attribute, a legend
+#' will be added to the plot using these names, else a set of column names will
+#' be auto-generated. \code{p} can also be a list or a data frame. In any case,
+#' each row (or element) MUST be named with gene names (the same as in \code{truth}).
+#' @param sig a significance level (0 < \code{sig} <=1).
+#' @return A named list with two members. The first member is a data frame with
+#' the numbers used to calculate the F1-score and the second member is the
+#' F1-score for each statistical test.
+#' @export
+#' @author Panagiotis Moulos
+#' @examples
+#' \dontrun{
+#' p1 <- 0.001*matrix(runif(300),100,3)
+#' p2 <- matrix(runif(300),100,3)
+#' p <- rbind(p1,p2)
+#' rownames(p) <- paste("gene",1:200,sep="_")
+#' colnames(p) <- paste("method",1:3,sep="_")
+#' truth <- c(rep(1,40),rep(-1,40),rep(0,10),rep(1,10),rep(2,10),rep(0,80))
+#' names(truth) <- rownames(p)
+#' f1 <- calc.f1score(truth,p)
+#'}
+calc.f1score <- function(truth,p,sig=0.05) {
+    if (is.list(p))
+        pmat <- do.call("cbind",p)
+    else if (is.data.frame(p))
+        pmat <- as.matrix(p)
+    else if (is.matrix(p))
+        pmat <- p
+    if (is.null(colnames(pmat)))
+        colnames(pmat) <- paste("p",1:ncol(pmat),sep="_")
+
+    sig.genes <- true.isects <- missed <- vector("list",ncol(pmat))
+    names(sig.genes) <- names(true.isects) <- names(missed) <- colnames(pmat)
+    for (n in colnames(pmat)) {
+        sig.genes[[n]] <- names(which(pmat[,n]<sig))
+        true.isects[[n]] <- intersect(sig.genes[[n]],names(which(truth!=0)))
+        missed[[n]] <- setdiff(names(which(truth!=0)),true.isects[[n]])
+    }
+    result <- data.frame(
+        P=sapply(sig.genes,length),
+        TP=sapply(true.isects,length),
+        FN=sapply(missed,length)
+    )
+    result$FP <- result$P - result$TP
+    f1 <- 2*result$TP/(2*result$TP+result$FP+result$FN)
+    names(f1) <- rownames(result)
+    return(list(result=result,f1=f1))
+}
