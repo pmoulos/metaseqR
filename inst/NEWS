@@ -1,100 +1,159 @@
-ChangeLog for package metaseqR
+CHANGES IN VERSION 0.9.0 (2013-11-21)
+-------------------------------------
 
-changes in version 0.9.0 (2013-11-21)
-added:
-    - First release
+NEW FEATURES
 
-changes in version 0.9.1 (2013-11-27)
-added:
-    - Permutation methods for combining p-values from multiple statistics
-    - More interactive and compact report
-fixed:
-    - A bug in exon filters resulting in removing genes/transcripts with only 
+
+    o First release
+
+CHANGES IN VERSION 0.9.1 (2013-11-27)
+--------------------------------------
+
+NEW FEATURES
+
+    o Permutation methods for combining p-values from multiple statistics
+    o More interactive and compact report
+
+BUG FIXES
+
+    o A bug in exon filters resulting in removing genes/transcripts with only 
     one exon
-    - A serious bug in exon filters causing wrong genes to be filtered out under
+    o A serious bug in exon filters causing wrong genes to be filtered out under
     circumstances
 
-changes in version 0.91.0 (2014-01-03)
-added:
-  - Functions to create simulated datasets
-  - Functions to create false discovery and ROC curves
-fixed:
-    - A bug in p-value vector naming causing unordered p-values for limma and
+CHANGES IN VERSION 0.91.0 (2014-01-03)
+--------------------------------------
+
+NEW FEATURES
+
+  o Functions to create simulated datasets
+  o Functions to create false discovery and ROC curves
+
+
+BUG FIXES
+
+    o A bug in p-value vector naming causing unordered p-values for limma and
     baySeq when combining methods
-    - Smaller bug fixes
+    o Smaller bug fixes
 
-changes in version 0.92.0 (2014-01-25)
-added:
-    - Functions to estimate weights for combining p-values based on simulated
+CHANGES IN VERSION 0.92.0 (2014-01-25)
+--------------------------------------
+
+NEW FEATURES
+
+    o Functions to estimate weights for combining p-values based on simulated
     datasets from real data
-fixed:
-    - Smaller bug fixes
 
-changes in version 0.93.0 (2014-02-12)
-added:
-    - Support for Arabidopsis thaliana
-    - Additional validation functions
-fixed:
-    - Bugs affecting multilevel factorial analysis (single factor, more than two
+BUG FIXES
+
+    o Smaller bug fixes
+
+CHANGES IN VERSION 0.93.0 (2014-02-12)
+--------------------------------------
+
+NEW FEATURES
+
+    o Support for Arabidopsis thaliana
+    o Additional validation functions
+
+BUG FIXES
+
+    o Bugs affecting multilevel factorial analysis (single factor, more than two
     conditions)
-    - Smaller bug fixes
+    o Smaller bug fixes
 
-changes in version 0.99.0 (2014-02-21)
-added:
-    - Support for Pan troglodytes
-    - Improved the simulator to i) simulate length bias and ii) better length
+CHANGES IN VERSION 0.99.0 (2014-02-21)
+--------------------------------------
+
+NEW FEATURES
+
+    o Support for Pan troglodytes
+    o Improved the simulator to i) simulate length bias and ii) better length
     selection
-fixed:
-    - Code changes to comply with Bioconductor's guidelines
 
-changes in version 0.99.1 (2014-03-12)
-added:
-    - Ability to export counts table (raw and normalized) when reading from BAM
+BUG FIXES
+
+    o Code changes to comply with Bioconductor's guidelines
+
+CHANGES IN VERSION 0.99.1 (2014-03-12)
+--------------------------------------
+
+NEW FEATURES
+
+    o Ability to export counts table (raw and normalized) when reading from BAM
     files or just normalized otherwise
-    - Valid examples for many functions
-fixed:
-  - More code and codestyle changes to comply with Bioconductor's guidelines
+    o Valid examples for many functions
 
-changes in version 0.99.2 (2014-03-14)
-added:
-    - Ability to display only the top x% of significant genes to avoid 
+BUG FIXES
+
+  o More code and codestyle changes to comply with Bioconductor's guidelines
+
+CHANGES IN VERSION 0.99.2 (2014-03-14)
+--------------------------------------
+
+NEW FEATURES
+
+    o Ability to display only the top x% of significant genes to avoid 
     excessively big reports
-fixed:
-    - More code and codestyle changes to comply with Bioconductor's guidelines
 
-changes in version 0.99.3 (2014-03-17)
-added:
-    - Function to check and warn if a main metaseqr argument is invalid (may
+BUG FIXES
+
+    o More code and codestyle changes to comply with Bioconductor's guidelines
+
+CHANGES IN VERSION 0.99.3 (2014-03-17)
+--------------------------------------
+
+NEW FEATURES
+
+    o Function to check and warn if a main metaseqr argument is invalid (may
     prevent crashes during run)
-fixed:
-    - Small bug fix in read2count function
 
-changes in version 0.99.4 (2014-03-18)
-added:
-fixed:
-    - Removed all <<- assignments
-    - Changed the Depends of DESCRIPTION file to import less packages in the 
+BUG FIXES
+
+    o Small bug fix in read2count function
+
+CHANGES IN VERSION 0.99.4 (2014-03-18)
+--------------------------------------
+
+BUG FIXES
+
+    o Removed all <<- assignments
+    o Changed the Depends of DESCRIPTION file to import less packages in the 
     main environment
-    - Added qvalue package to Depends as there was a problem with NBPSeq
+    o Added qvalue package to Depends as there was a problem with NBPSeq
 
-changes in version 0.99.5 (2014-03-31)
-added:
-    - Changed directory structure of the report to look more organized and pro
-    - Added the ability to save and retrieve the gene model counts list (counts
+CHANGES IN VERSION 0.99.5 (2014-03-31)
+--------------------------------------
+
+NEW FEATURES
+
+    o Changed directory structure of the report to look more organized and pro
+    o Added the ability to save and retrieve the gene model counts list (counts
     for each exon) in an .RData file to be reused in another analysis later, as
     summarizing genes is one of the most time-consuming parts.
-fixed:
-    - Minor problems with the report
 
-changes in version 0.99.6 (2014-04-09)
-added:
-    - Example on how to estimate statistical test weights in the vignette
-fixed:
-    - Bug when exporting flags when gene or exon filters are NULL
+BUG FIXES
 
-changes in version 1.0.0 (2014-04-11)
-added:
-    - Function to calculate the F1-score (or harmonic mean of precision and
+    o Minor problems with the report
+
+CHANGES IN VERSION 0.99.6 (2014-04-09)
+--------------------------------------
+
+NEW FEATURES
+
+    o Example on how to estimate statistical test weights in the vignette
+
+BUG FIXES
+
+    o Bug when exporting flags when gene or exon filters are NULL
+
+CHANGES IN VERSION 1.0.0 (2014-04-11)
+--------------------------------------
+
+
+NEW FEATURES
+
+    o Function to calculate the F1-score (or harmonic mean of precision and
     recall)
-    - Mature and tested enough to go from 0.x.y version to 1.0.0
-fixed:
+    o Mature and tested enough to go from 0.x.y version to 1.0.0
+
