@@ -19,7 +19,7 @@ check.main.args <- function(main.args) {
         "nperm","reprod","pcut","log.offset","preset","qc.plots","fig.format",
         "out.list","export.where","export.what","export.scale","export.values",
         "export.stats","export.counts.table","restrict.cores","report",
-        "report.top","report.template","verbose","run.log"
+        "report.top","report.template","verbose","run.log","save.gene.model"
     )
     invalid <- setdiff(in.args,valid.args)
     if (length(invalid) > 0) {

@@ -875,13 +875,6 @@ metaseqr <- function(
     else
         PROJECT.PATH <- make.project.path(export.where,counts)
     assign("VERBOSE",verbose,envir=meta.env)
-    # Check logger, here
-    if (run.log && suppressWarnings(!require(log4r)))
-    {
-        warning("R package log4r is required to create an log file! Log will ",
-            "not be created...")
-        run.log <- FALSE
-    }
     if (run.log)
         logger <- create.logger(logfile=file.path(PROJECT.PATH$logs,
             "metaseqr_run.log"),level=2,logformat="%d %c %m")
@@ -1288,9 +1281,11 @@ metaseqr <- function(
                 {
                     if (from.raw) # Double check
                     {
-                        r2c <- read2count(file.list,file.type,exon.data,
+                        r2c <- read2count(the.list,exon.data,file.type,
                             multic=multic)
                         exon.counts <- r2c$counts
+                        # Merged exon data!
+                        exon.data <- r2c$mergedann
                         if (is.null(libsize.list))
                             libsize.list <- r2c$libsize
                         if (export.counts.table) {
@@ -1446,7 +1441,7 @@ metaseqr <- function(
             {
                 if (from.raw) # Double check
                 {
-                    r2c <- read2count(file.list,file.type,gene.data,
+                    r2c <- read2count(the.list,gene.data,file.type,
                         multic=multic)
                     gene.counts <- r2c$counts
                     if (is.null(libsize.list))

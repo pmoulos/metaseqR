@@ -2,28 +2,24 @@
 \alias{read2count}
 \title{SAM/BAM/BED file reader helper for the metaseqr pipeline}
 \usage{
-    read2count(files.list, file.type, annotation,
+    read2count(targets, annotation, file.type = targets$type,
         has.all.fields = FALSE, multic = FALSE)
 }
 \arguments{
-    \item{files.list}{a named list whose members are named
-    vectors. The names of the list correspond to condition
-    names (see the \code{sample.list} argument in the main
-    \code{\link{metaseqr}} function). The names of the
-    vectors are the sample names and the vector elements are
-    full paths to BAM/BED files.}
-
-    \item{file.type}{the type of raw input files. It can be
-    \code{"bed"} for BED files or \code{"sam"}, \code{"bam"}
-    for SAM/BAM files. See the same argument in the main
-    \code{\link{metaseqr}} function for the case of
-    auto-guessing.}
+    \item{targets}{a named list, the output of 
+    \code{\link{read.targets}}.}
 
     \item{annotation}{see the \code{annotation} argument in
     the main \code{\link{metaseqr}} function. The
     \code{"annotation"} parameter here is the result of the
     same parameter in the main function. See also
     \code{\link{get.annotation}}.}
+
+	\item{file.type}{the type of raw input files. It can be
+    \code{"bed"} for BED files or \code{"sam"}, \code{"bam"}
+    for SAM/BAM files. See the same argument in the main
+    \code{\link{metaseqr}} function for the case of
+    auto-guessing.}
 
     \item{has.all.fields}{a logical variable indicating if
     all annotation fields used by \code{metaseqr} are

@@ -157,3 +157,18 @@ NEW FEATURES
     recall)
     o Mature and tested enough to go from 0.x.y version to 1.0.0
 
+CHANGES IN VERSION 1.3.2 (2014-05-05)
+--------------------------------------
+
+NEW FEATURES
+
+    o Function to merge exons belonging to different isoforms to a set of
+    "virtual" exons to help construct a single gene model with unique exons
+    o Simplified the usage of read2count()
+
+BUG FIXES
+
+    o Major bug in "exon" mode that inflated the number of reads for certain 
+    genes with many isoforms
+    o Minor bug in argument checking, not allowing to not save the gene model in
+    "exon" mode
