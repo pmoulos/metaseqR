@@ -772,6 +772,7 @@ stat.nbpseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
                     libsize.list[[n]] <- sum(nb.data$counts[,n])
             }
             lib.sizes <- unlist(libsize.list)
+            nb.data$pseudo.lib.sizes=rep(1e+7,dim(object$counts)[2])
         },
         nbp = { # Same...
             object$pseudo.counts <- as.matrix(object$pseudo.counts)
@@ -813,8 +814,9 @@ stat.nbpseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
                 grp.ids=classes,
                 eff.lib.sizes=lib.sizes*rep(1,dim(counts)[2]),
                 pseudo.counts=as.matrix(counts),
-                pseudo.lib.sizes=colSums(as.matrix(counts)) *
-                    rep(1,dim(counts)[2])
+                #pseudo.lib.sizes=colSums(as.matrix(counts)) *
+                #    rep(1,dim(counts)[2])
+                pseudo.lib.sizes=rep(1e+7,dim(counts)[2])
             )
             class(nb.data) <- "nbp"
         #}
@@ -841,7 +843,7 @@ stat.nbpseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
             #}
             #else if (stat.args$main.method=="nbsmyth") {
                 obj <- suppressWarnings(estimate.disp(nb.data,
-                    method=stat.args$method$nbsmyth,print.level=0))
+                    model=stat.args$model$nbsmyth,print.level=0))
                 obj <- exact.nb.test(obj,cons[1],cons[2],print.level=0)
                 p[[con.name]] <- obj$p.values
             #}

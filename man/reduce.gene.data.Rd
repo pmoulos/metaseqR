@@ -28,7 +28,7 @@
 \examples{
 \donttest{
 data("hg19.exon.data",package="metaseqR")
-gene.data <- get.annotation("hg19","gene")
+gene.data <- get.annotation("hg19","gene","ensembl")
 reduced.gene.data <- reduce.gene.data(hg19.exon.counts,
     gene.data)
 }

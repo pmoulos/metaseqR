@@ -2,7 +2,10 @@
 \alias{get.gene.attributes}
 \title{Annotation downloader helper}
 \usage{
-    get.gene.attributes()
+    get.gene.attributes(org)
+}
+\arguments{
+    \item{org}{one of the supported organisms.}
 }
 \value{
     A character vector of Ensembl gene attributes.
@@ -14,7 +17,7 @@
     Internal use.
 }
 \examples{
-gene.attr <- get.gene.attributes()
+gene.attr <- get.gene.attributes("mm9")
 }
 \author{
     Panagiotis Moulos

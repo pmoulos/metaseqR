@@ -2,7 +2,10 @@
 \alias{get.exon.attributes}
 \title{Annotation downloader helper}
 \usage{
-    get.exon.attributes()
+    get.exon.attributes(org)
+}
+\arguments{
+    \item{org}{one of the supported organisms.}
 }
 \value{
     A character vector of Ensembl exon attributes.
@@ -14,7 +17,7 @@
     Internal use.
 }
 \examples{
-exon.attr <- get.exon.attributes()
+exon.attr <- get.exon.attributes("mm9")
 }
 \author{
     Panagiotis Moulos

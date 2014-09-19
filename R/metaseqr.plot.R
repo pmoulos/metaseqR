@@ -664,7 +664,7 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
                 }
                 pair.matrix <- combn(1:length(sample.list[[n]]),2)
                 fil[[n]] <- vector("list",ncol(pair.matrix))
-                for (i in ncol(pair.matrix)) {
+                for (i in 1:ncol(pair.matrix)) {
                     s1 <- sample.list[[n]][pair.matrix[1,i]]
                     s2 <- sample.list[[n]][pair.matrix[2,i]]
                     fil[[n]][[i]] <- file.path(path,paste(which.plot,"_",
@@ -688,7 +688,7 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
                 }
                 pair.matrix <- combn(1:length(sample.list[[n]]),2)
                 fil[[n]] <- vector("list",ncol(pair.matrix))
-                for (i in ncol(pair.matrix)) {
+                for (i in 1:ncol(pair.matrix)) {
                     s1 <- sample.list[[n]][pair.matrix[1,i]]
                     s2 <- sample.list[[n]][pair.matrix[2,i]]
                     fil[[n]][[i]] <- file.path(path,paste(which.plot,"_",status,

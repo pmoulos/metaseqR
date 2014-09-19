@@ -18,7 +18,7 @@ check.main.args <- function(main.args) {
         "norm.args","statistics","stat.args","adjust.method","meta.p","weight",
         "nperm","reprod","pcut","log.offset","preset","qc.plots","fig.format",
         "out.list","export.where","export.what","export.scale","export.values",
-        "export.stats","export.counts.table","restrict.cores","report",
+        "export.stats","export.counts.table","restrict.cores","report","refdb",
         "report.top","report.template","verbose","run.log","save.gene.model"
     )
     invalid <- setdiff(in.args,valid.args)

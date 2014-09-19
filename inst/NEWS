@@ -172,3 +172,34 @@ BUG FIXES
     genes with many isoforms
     o Minor bug in argument checking, not allowing to not save the gene model in
     "exon" mode
+
+CHANGES IN VERSION 1.3.3 (2014-08-21)
+--------------------------------------
+
+NEW FEATURES
+
+    o Added the ability to retrieve annotation for genes/exons from UCSC or
+    RefSeq through connection to UCSC Genome Browser public SQL database. The
+    GC-content for each region is retrieved through BSgenome packages.
+    o Added details regarding the number of genes returned by each algorithm
+    when conducting combined analysis.
+
+BUG FIXES
+
+    o Fixed minor bug with warning level logging.
+    o Fixed problem occured with the change of biomaRt attributes for newer
+    organisms.
+
+CHANGES IN VERSION 1.3.4 (2014-09-03)
+--------------------------------------
+
+NEW FEATURES
+
+    o Added support for hg38
+
+BUG FIXES
+
+    o Fixed more problems occured with the change of biomaRt attributes for 
+    newer organisms.
+    o Fixed bug causing report crash when no genes are passing FDR threshold in
+    paired comparisons.

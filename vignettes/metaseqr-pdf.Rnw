@@ -372,25 +372,24 @@ The metaseqR package currently supports three methods of data input:
     until the end, ensuring data integrity (e.g. the compatibility of the genome
     annotations used, something that can sometimes be broken when using external
     read counting software). SAM/BAM files are imported through the Bioconductor
-    packages Rsamtools and Repitools and BED files are imported through the
+    packages Rsamtools and GenomicRanges and BED files are imported through the
     Bioconductor package rtracklayer. The aligned reads are converted to a read
     counts table through facilities provided in the Bioconductor package
-    GenomicRanges. The Ensembl gene or exon regions which are used to summarize
-    the read alignments and create the final read counts table for each gene or
-    exon can be obtained either through downloading at the time of usage using the
-    Bioconductor package biomaRt, or through the use of the embedded in the
-    metaseqR package Ensembl annotation for speed, or from a user-specified file.
+    GenomicRanges. The Ensembl/UCSC/RefSeq gene or exon regions which are used to 
+    summarize the read alignments and create the final read counts table for each
+    gene or exon can be obtained either through downloading at the time of usage
+    using the Bioconductor packages biomaRt/RMySQL, or from a user-specified file.
     \item Summarized numbers of reads for each genomic feature (gene or exon) by
     providing a file containing the read counts table. This file should contain at
-    least: a) a column with a unique identifier for each gene/exon (currently only
-    Ensembl identifiers are supported unless the required annotation elements for
+    least: a) a column with a unique identifier for each gene/exon (currently, Ensembl,
+    UCSC and RefSeq identifiers are supported unless the required annotation elements for
     each genomic region are embedded in the file), b) as many columns as the number
     of samples in the experiment. Each column with sample read counts should be
     named with a unique sample name. Optionally, the read counts file can contain
     annotation elements for each genomic feature (gene or exon) corresponding to
     the unique identifier column. In this case, the pipeline may be executed with
     the annotation=``embedded'' argument and it is very useful when the user does
-    not wish to use Ensembl annotation or the organisms under investigation is not
+    not wish to use supported annotations or the organisms under investigation is not
     supported by metaseqR. If the user chooses to use embedded to the read counts
     file annotation, then at least the following elements should be provided for
     each genomic region, apart from its unique name should be provided (in

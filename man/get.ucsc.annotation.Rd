@@ -1,8 +1,8 @@
-\name{get.annotation}
-\alias{get.annotation}
-\title{Annotation downloader}
+\name{get.ucsc.annotation}
+\alias{get.ucsc.annotation}
+\title{UCSC/RefSeq annotation downloader}
 \usage{
-    get.annotation(org, type, refdb="ensembl",
+    get.ucsc.annotation(org, type, refdb="ucsc",
         multic=FALSE)
 }
 \arguments{
@@ -11,11 +11,8 @@
 
     \item{type}{either \code{"gene"} or \code{"exon"}.}
 
-    \item{refdb}{the online source to use to fetch 
-    annotation. It can be \code{"ensembl"} (default), 
-    \code{"ucsc"} or \code{"refseq"}. In the later two
-    cases, an SQL connection is opened with the UCSC 
-    public databases.}
+    \item{refdb}{either \code{"ucsc"} or 
+    \code{"refseq"}.}
 
     \item{multic}{a logical value indicating the 
     presence of multiple cores. Defaults to 
@@ -33,29 +30,33 @@
     strand, gene_name, biotype. When \code{type="exon"} the
     data frame has the following columns: chromosome, start,
     end, exon_id, gene_id, strand, gene_name, biotype. The
-    gene_id and exon_id correspond to Ensembl gene and exon
-    accessions respectively. The gene_name corresponds to
-    HUGO nomenclature gene names.
+    gene_id and exon_id correspond to UCSC or RefSeq gene 
+    and exon accessions respectively. The gene_name corresponds 
+    to HUGO nomenclature gene names.
 }
 \description{
-    This function connects to the EBI's Biomart service using
-    the package biomaRt and downloads annotation elements
-    (gene co-ordinates, exon co-ordinates, gene
-    identifications, biotypes etc.) for each of the supported
-    organisms. See the help page of \code{\link{metaseqr}}
-    for a list of supported organisms. The function downloads
-    annotation for an organism genes or exons.
+    This function connects to the UCSC Genome Browser public 
+    database and downloads annotation elements (gene 
+    co-ordinates, exon co-ordinates, gene identifications
+    etc.) for each of the supported organisms, but using UCSC 
+    instead of Ensembl. See the help page of 
+    \code{\link{metaseqr}} for a list of supported organisms.
+    The function downloads annotation for an organism genes or 
+    exons.
 }
 \note{
     The data frame that is returned contains only "canonical"
     chromosomes for each organism. It does not contain
     haplotypes or random locations and does not contain
-    chromosome M.
+    chromosome M.  Note also that as the UCSC databases do 
+    not contain biotype classifications like Ensembl. These 
+    will be returned as \code{NA} and as a result, some 
+    quality control plots will not be available.
 }
 \examples{
 \donttest{
-hg19.genes <- get.annotation("hg19","gene","ensembl")
-mm9.exons <- get.annotation("mm9","exon","ucsc")
+hg19.genes <- get.ucsc.annotation("hg19","gene","ucsc")
+mm9.exons <- get.ucsc.annotation("mm9","exon","refseq")
 }
 }
 \author{

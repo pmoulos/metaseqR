@@ -1,29 +1,14 @@
-\name{get.annotation}
-\alias{get.annotation}
-\title{Annotation downloader}
+\name{get.ensembl.annotation}
+\alias{get.ensembl.annotation}
+\title{Ensembl annotation downloader}
 \usage{
-    get.annotation(org, type, refdb="ensembl",
-        multic=FALSE)
+    get.ensembl.annotation(org, type)
 }
 \arguments{
     \item{org}{the organism for which to download
     annotation.}
 
     \item{type}{either \code{"gene"} or \code{"exon"}.}
-
-    \item{refdb}{the online source to use to fetch 
-    annotation. It can be \code{"ensembl"} (default), 
-    \code{"ucsc"} or \code{"refseq"}. In the later two
-    cases, an SQL connection is opened with the UCSC 
-    public databases.}
-
-    \item{multic}{a logical value indicating the 
-    presence of multiple cores. Defaults to 
-    \code{FALSE}. Do not change it if you are not 
-    sure whether package parallel has been loaded 
-    or not. It is used in the case of 
-    \code{type="exon"} to process the return value of 
-    the query to the UCSC Genome Browser database.}
 }
 \value{
     A data frame with the canonical (not isoforms!) genes or
@@ -54,8 +39,8 @@
 }
 \examples{
 \donttest{
-hg19.genes <- get.annotation("hg19","gene","ensembl")
-mm9.exons <- get.annotation("mm9","exon","ucsc")
+hg19.genes <- get.ensembl.annotation("hg19","gene")
+mm9.exons <- get.ensembl.annotation("mm9","exon")
 }
 }
 \author{

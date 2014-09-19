@@ -191,7 +191,7 @@
                                         if (count.type=="exon") cat("an exon ") else if (count.type=="gene") cat("a gene ")
                                         cat("read counts table, ")
                                         if (file.type=="bam" || file.type=="sam")
-                                            cat("using the Bioconductor packages Repitools and GenomicRanges. ")
+                                            cat("using the Bioconductor package GenomicRanges. ")
                                         else if (file.type=="bed")
                                             cat("using the Bioconductor packages rtracklayer and GenomicRanges. ")
                                         cat("In the final read counts table, each row represented ")
@@ -336,10 +336,23 @@
                                             if (length(strsplit(cnt,"_vs_")[[1]])==2) {
                                                 tmp <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(sum.p.list[[cnt]]<plasm),],log.offset))
                                                 if (adjust.method!="none") {
-                                                    tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm),],log.offset))
-                                                    add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
-                                                    add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
-                                                    add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
+                                                    are.there <- which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm)
+                                                    if (length(are.there)>0) {
+                                                        if (length(are.there)==1) {
+                                                            tmp.f <- log2(make.fold.change(cnt,sample.list,t(as.matrix(norm.genes.expr[are.there,])),log.offset))
+                                                            add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
+                                                            add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
+                                                            add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
+                                                        }
+                                                        else {
+                                                            tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[are.there,],log.offset))
+                                                            add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
+                                                            add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
+                                                            add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
+                                                        }
+                                                    }
+                                                    else
+                                                        add.text.fu <- add.text.fd <- add.text.fn <- NULL
                                                 }
                                                 else
                                                     add.text.fu <- add.text.fd <- add.text.fn <- NULL
@@ -373,6 +386,7 @@
                                     %>
                                     <strong>Annotation:</strong> <%=annotation%></br>
                                     <strong>Organism:</strong> <%=report.messages$org[[org]]%></br>
+                                    <strong>Annotation source:</strong> <%=report.messages$refdb[[refdb]]%></br>
                                     <strong>Count type:</strong> <%=count.type%></br>
                                     <strong>Exon filters:</strong>
                                     <%=
@@ -460,7 +474,7 @@
                                     <%=
                                     if (!is.null(stat.args)) {
                                         for (s in names(stat.args)) {
-                                            cat("<strong>Statistical arguments for</strong> ",report.messages$stat[[s]],": ",paste(names(stat.args[[s]]),collapse=", "))
+                                            cat("<strong>Statistical arguments for ",report.messages$stat[[s]],": </strong>",paste(names(stat.args[[s]]),collapse=", "),sep="")
                                             if (length(stat.args[[s]])>0) {
                                                 cat("<ul>")
                                                 for (sa in names(stat.args[[s]])) {
@@ -498,14 +512,16 @@
                                         <li>Filtered because of zero reads: <%=length(the.zeros)%></li>
                                         <li>
                                             Filtered because of exon filters: <%=sum(as.numeric(sapply(exon.filter.result,length)))%>
-                                            <em> which is the <strong>union</strong> of</em>
-                                            <ul>
-                                                <%=
-                                                for (n in names(exon.filter.result)) {
-                                                    cat("<li>",n,": ",length(exon.filter.result[[n]]),"</li>")
+                                            <%=
+                                                if (sum(as.numeric(sapply(exon.filter.result,length)))!=0) {
+                                                    cat("<em> which is the <strong>union</strong> of</em>")
+                                                    cat("<ul>")
+                                                    for (n in names(exon.filter.result)) {
+                                                        cat("<li>",n,": ",length(exon.filter.result[[n]]),"</li>")
+                                                    }
+                                                    cat("</ul>")
                                                 }
-                                                %>
-                                            </ul>
+                                            %>
                                         </li>
                                         <li>
                                             Filtered because of gene filters: <%=length(unique(unlist(gene.filter.result)))%>
@@ -516,17 +532,17 @@
                                                     if (!is.list(gene.filter.result[[n]])) {
                                                         if (!is.null(gene.filter.result[[n]]))
                                                             cat("<li>",n,": ",length(unlist(gene.filter.result[[n]])),
-                                                                " genes with filter cutoff value ",gene.filter.cutoff[[n]],"</li>")
+                                                                " genes with filter cutoff value ",gene.filter.cutoff[[n]],"</li>",sep="")
                                                     }
                                                     else {
                                                         cat("<li>",n,": ",length(unlist(gene.filter.result[[n]])),
-                                                            " genes further decomposed to (filter name, filtered genes, filter cutoff):</li>")
+                                                            " genes further decomposed to (filter name, filtered genes, filter cutoff):</li>",sep="")
                                                         cat("<li><ul>")
                                                         for (nn in names(gene.filter.result[[n]])) {
                                                             if (!is.null(gene.filter.result[[n]][[nn]]))
                                                                 cat("<li>",nn,": ",length(unlist(gene.filter.result[[n]][[nn]])),
                                                                 " genes with filter cutoff value ",paste(gene.filter.cutoff[[n]][[nn]],
-                                                                collapse=", "),"</li>")
+                                                                collapse=", "),"</li>",sep="")
                                                         }
                                                         cat("</ul></li>")
                                                     }
@@ -547,7 +563,7 @@
                                     <ul>
                                         <%
                                         for (cnt in contrast) {
-                                            cat("<li>",cnt,": ",sep="")
+                                            cat("<li><strong>",cnt,": </strong>",sep="")
                                             if (!is.na(pcut) && length(which(sum.p.list[[cnt]]<pcut))==0)
                                                 cat("no differentially expressed genes","</li>")
                                             else if (is.na(pcut))
@@ -566,10 +582,23 @@
                                                 if (length(strsplit(cnt,"_vs_")[[1]])==2) {
                                                     tmp.p <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(sum.p.list[[cnt]]<plasm),],log.offset))
                                                     if (adjust.method!="none") {
-                                                        tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm),],log.offset))
-                                                        add.text.fu <- paste("(",length(which(tmp.f>=1)),")",sep="")
-                                                        add.text.fd <- paste("(",length(which(tmp.f<=-1)),")",sep="")
-                                                        add.text.fn <- paste("(",length(which(abs(tmp.f)<1)),")",sep="")
+                                                        are.there <- which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm)
+                                                        if (length(are.there)>0) {
+                                                            if (length(are.there)==1) {
+                                                                tmp.f <- log2(make.fold.change(cnt,sample.list,t(as.matrix(norm.genes.expr[are.there,])),log.offset))
+                                                                add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
+                                                                add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
+                                                                add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
+                                                            }
+                                                            else {
+                                                                tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[are.there,],log.offset))
+                                                                add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
+                                                                add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
+                                                                add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
+                                                            }
+                                                        }
+                                                        else
+                                                            add.text.fu <- add.text.fd <- add.text.fn <- NULL
                                                     }
                                                     else
                                                         add.text.fu <- add.text.fd <- add.text.fn <- NULL
@@ -581,6 +610,39 @@
                                                 else
                                                     cat(length(which(sum.p.list[[cnt]]<plasm))," ",add.text.p," statistically significant, differentially expressed in at",
                                                     " least one condition at a p-value ",has.fdr.text," threshold of ",plasm,".",sep="")
+                                                if (length(statistics)>1 && meta.p!="none") {
+                                                    cat(" These numbers refer to the combined analysis performed by metaseqR. Per statistical algorithm, the differentially expressed genes are:")
+                                                    cat("<ul>")
+                                                    for (s in statistics) {
+                                                        cat("<li><em>",report.messages$stat[[s]],": </em>",sep="")
+                                                        if (adjust.method!="none") {
+                                                            add.text.p <- paste("(",length(which(p.adjust(cp.list[[cnt]][,s],adjust.method)<plasm)),")",sep="")
+                                                            has.fdr.text <- "(FDR or adjusted p-value)"
+                                                        }
+                                                        else
+                                                            add.text.p <- has.fdr.text <- NULL
+                                                        if (length(strsplit(cnt,"_vs_")[[1]])==2) {
+                                                            tmp.p <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(cp.list[[cnt]][,s]<plasm),],log.offset))
+                                                            if (adjust.method!="none") {
+                                                                tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(p.adjust(cp.list[[cnt]][,s],adjust.method)<plasm),],log.offset))
+                                                                add.text.fu <- paste("(",length(which(tmp.f>=1)),")",sep="")
+                                                                add.text.fd <- paste("(",length(which(tmp.f<=-1)),")",sep="")
+                                                                add.text.fn <- paste("(",length(which(abs(tmp.f)<1)),")",sep="")
+                                                            }
+                                                            else
+                                                                add.text.fu <- add.text.fd <- add.text.fn <- NULL
+                                                            cat(length(which(cp.list[[cnt]][,s]<plasm)),add.text.p,"statistically significant genes of which",length(which(tmp.p>=1)),
+                                                                add.text.fu,"up regulated,",length(which(tmp.p<=-1)),add.text.fd,"down regulated and",length(which(abs(tmp.p)<1)),
+                                                                add.text.fn,"not differentially expressed according to a p-value",has.fdr.text,"threshold of",plasm,"and an absolute",
+                                                                "fold change cutoff value of 1 in log<sub>2</sub> scale.")
+                                                        }
+                                                        else
+                                                            cat(length(which(cp.list[[cnt]][,s]<plasm))," ",add.text.p," statistically significant, differentially expressed in at",
+                                                            " least one condition at a p-value ",has.fdr.text," threshold of ",plasm,".",sep="")
+                                                        cat("</li>")
+                                                    }
+                                                    cat("</ul>")
+                                                }
                                             }
                                         }
                                         %>
