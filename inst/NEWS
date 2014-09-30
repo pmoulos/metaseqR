@@ -203,3 +203,18 @@ BUG FIXES
     newer organisms.
     o Fixed bug causing report crash when no genes are passing FDR threshold in
     paired comparisons.
+
+CHANGES IN VERSION 1.3.5 (2014-09-30)
+--------------------------------------
+
+NEW FEATURES
+
+    o Re-analysis based on saved gene models is now faster.
+    o Added the ability to save time-consuming part of analyses also when 
+    count.type="gene".
+
+BUG FIXES
+
+    o Fixed problem with RMySQL dependency when using annotation from UCSC.
+    Solved with the usage of RSQLite, however, the process is a bit longer.
+    

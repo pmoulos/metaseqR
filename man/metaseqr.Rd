@@ -84,12 +84,24 @@
     only gene accessions and thus be less comprehensible.
     Generally, it's best to set the \code{annotation}
     parameter to \code{"download"} to ensure the most
-    comprehensible results. Counts can also be a data frame
-    satisfying the above conditions. It is a data frame by
-    default when \code{read2count} is used. Finally, counts 
-    can be a list representing the gene model (exon counts 
-    for each gene) constructed by the 
-    \code{\link{construct.gene.model}} function.}
+    comprehensible results. Counts can be a data frame 
+    satisfying the above conditions. It is a data frame 
+    by default when \code{read2count} is used. counts can 
+    also be an .RData file (output of \code{\link{save}} 
+    function which contains static input elements (list 
+    containing the gene model (exon counts for each gene 
+    constructed by the \code{\link{construct.gene.model}} 
+    function, gene and exon annotation to avoid 
+    re-downloading and/or gene counts depending on 
+    \code{count.type}). This kind of input facilitates the 
+    re-analysis of the same experiment, using different 
+    filtering, normalization and statistical algorithms. 
+    Finally, counts can be a list representing the gene model 
+    (exon counts for each gene) constructed by the 
+    \code{\link{construct.gene.model}} function (provided for 
+    backwards compatibility). This .RData file can be generated 
+    by setting \code{save.gene.model=TRUE} when performing data 
+    analysis for the first time.}
 
     \item{sample.list}{a list containing condition names and
     the samples under each condition. It should have the

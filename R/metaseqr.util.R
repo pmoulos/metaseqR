@@ -85,28 +85,33 @@ read2count <- function(targets,annotation,file.type=targets$type,
     # to multiple transcripts, so as to avoid inflating the final read count when
     # summing all exons
     if (length(grep("exon",colnames(annotation)))>0) {
-        disp("Merging exons to create unique gene models...")
-        annotation.gr <- reduce.exons(annotation.gr,multic=multic)
-        #merged.annotation <- as.data.frame(annotation.gr) # Bug?
-        merged.annotation <- data.frame(
-            chromosome=as.character(seqnames(annotation.gr)),
-            start=start(annotation.gr),
-            end=end(annotation.gr),
-            exon_id=if (!is.null(annotation.gr$exon_id))
-                as.character(annotation.gr$exon_id) else
-                as.character(annotation.gr$name),
-            gene_id=if (!is.null(annotation.gr$gene_id))
-                as.character(annotation.gr$gene_id) else
-                as.character(annotation.gr$name),
-            strand=as.character(strand(annotation.gr)),
-            gene_name=if (!is.null(annotation.gr$gene_name))
-                as.character(annotation.gr$gene_name) else 
-                if (!is.null(annotation.gr$symbol))
-                as.character(annotation.gr$name) else NULL,
-            biotype=if (!is.null(annotation.gr$biotype))
-                as.character(annotation.gr$biotype) else NULL
-        )
-        rownames(merged.annotation) <- as.character(merged.annotation$exon_id)
+        if (length(grep("MEX",annotation$exon_id[1]))) # Retrieved from previous
+            merged.annotation <- annotation
+        else {
+            disp("Merging exons to create unique gene models...")
+            annotation.gr <- reduce.exons(annotation.gr,multic=multic)
+            #merged.annotation <- as.data.frame(annotation.gr) # Bug?
+            merged.annotation <- data.frame(
+                chromosome=as.character(seqnames(annotation.gr)),
+                start=start(annotation.gr),
+                end=end(annotation.gr),
+                exon_id=if (!is.null(annotation.gr$exon_id))
+                    as.character(annotation.gr$exon_id) else
+                    as.character(annotation.gr$name),
+                gene_id=if (!is.null(annotation.gr$gene_id))
+                    as.character(annotation.gr$gene_id) else
+                    as.character(annotation.gr$name),
+                strand=as.character(strand(annotation.gr)),
+                gene_name=if (!is.null(annotation.gr$gene_name))
+                    as.character(annotation.gr$gene_name) else 
+                    if (!is.null(annotation.gr$symbol))
+                    as.character(annotation.gr$name) else NULL,
+                biotype=if (!is.null(annotation.gr$biotype))
+                    as.character(annotation.gr$biotype) else NULL
+            )
+            rownames(merged.annotation) <- 
+                as.character(merged.annotation$exon_id)
+        }
     }
     else
         merged.annotation <- NULL
@@ -1471,8 +1476,16 @@ get.ensembl.annotation <- function(org,type) {
 #' mm9.exons <- get.ucsc.annotation("mm9","exon")
 #'}
 get.ucsc.annotation <- function(org,type,refdb="ucsc",multic=FALSE) {
-    if (!require(RMySQL))
-        stopwrap("R package RMySQL is required!")
+    if (!require(RMySQL)) {
+        rmysql.present <- FALSE
+        warnwrap("R package RMySQL is not present! Annotation will be ",
+            "retrieved by downloading temporary files from UCSC and the usage
+            of a temporary SQLite database...")
+    }
+    else
+        rmysql.present <- TRUE
+    if (!require(RSQLite))
+        stopwrap("R package RSQLite is required to use annotation from UCSC!")
 
     if (org=="tair10") {
         warnwrap("Arabidopsis thaliana genome is not supported by UCSC Genome ",
@@ -1484,11 +1497,24 @@ get.ucsc.annotation <- function(org,type,refdb="ucsc",multic=FALSE) {
     chrs.exp <- paste("^",paste(valid.chrs,collapse="$|^"),"$",sep="")
 
     db.org <- get.ucsc.organism(org)
-    db.creds <- get.ucsc.credentials()
-    con <- dbConnect(MySQL(),user=db.creds[2],password=NULL,dbname=db.org,
-        host=db.creds[1])
-    query <- get.ucsc.query(org,type,refdb)
-    raw.ann <- dbGetQuery(con,query)
+    if (rmysql.present) {
+        db.creds <- get.ucsc.credentials()
+        drv <- dbDriver("MySQL")
+        con <- dbConnect(drv,user=db.creds[2],password=NULL,dbname=db.org,
+            host=db.creds[1])
+        query <- get.ucsc.query(org,type,refdb)
+        raw.ann <- dbGetQuery(con,query)
+        dbDisconnect(con)
+    }
+    else {
+        # This should return the same data frame as the db query
+        tmp.sqlite <- get.ucsc.dbl(org,type,refdb)
+        drv <- dbDriver("SQLite")
+        con <- dbConnect(drv,dbname=tmp.sqlite)
+        query <- get.ucsc.query(org,type,refdb)
+        raw.ann <- dbGetQuery(con,query)
+        dbDisconnect(con)
+    }
     if (type=="gene") {
         ann <- raw.ann
         ann <- ann[grep(chrs.exp,ann$chromosome,perl=TRUE),]
@@ -1534,7 +1560,7 @@ get.ucsc.annotation <- function(org,type,refdb="ucsc",multic=FALSE) {
         )
         rownames(ann) <- ann$exon_id
     }
-    dbDisconnect(con)
+    
     gc.content <- get.gc.content(ann,org)
     ann$gc_content <- gc.content
     ann <- ann[order(ann$chromosome,ann$start),]
@@ -1592,729 +1618,6 @@ get.gc.content <- function(ann,org) {
         digits=2))
     names(gc.content) <- as.character(ann[,4])
     return(gc.content)
-}
-
-#' Return queries for the UCSC Genome Browser database, according to organism and
-#' source
-#'
-#' Returns an SQL query to be used with a connection to the UCSC Genome Browser
-#' database and fetch metaseqR supported organism annotations. This query is
-#' constructed based on the data source and data type to be returned.
-#'
-#' @param org one of metaseqR supported organisms.
-#' @param type either \code{"gene"} or \code{"exon"}.
-#' @param refdb one of \code{"ucsc"} or \code{"refseq"} to use the UCSC or RefSeq
-#' annotation sources respectively.
-#' @return A valid SQL query.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' db.query <- get.ucsc.query("gene","ucsc")
-#'}
-get.ucsc.query <- function(org,type,refdb="ucsc") {
-    type <- tolower(type[1])
-    org <- tolower(org[1])
-    refdb <- tolower(refdb[1])
-    check.text.args("type",type,c("gene","exon"))
-    check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","tair10"),multiarg=FALSE)
-    check.text.args("refdb",refdb,c("ucsc","refseq"))
-    switch(type,
-        gene = {
-            switch(refdb,
-                ucsc = {
-                    switch(org,
-                        hg18 = {
-                            return(paste("SELECT knownCanonical.chrom AS ",
-                                "`chromosome`,`chromStart` AS `start`,",
-                                "`chromEnd` AS `end`,`transcript` AS ",
-                                "`gene_id`,0 AS `gc_content`,knownGene.strand ",
-                                "AS `strand`,`geneName` AS `gene_name`,'NA' ",
-                                "AS `biotype` FROM `knownCanonical` INNER ",
-                                "JOIN `knownGene` ON ",
-                                "knownCanonical.transcript=knownGene.name ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",                                
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "`gene_id` ORDER BY `chromosome`, `start`",
-                                sep=""))
-                        },
-                        hg19 = {
-                            return(paste("SELECT knownCanonical.chrom AS ",
-                                "`chromosome`,`chromStart` AS `start`,",
-                                "`chromEnd` AS `end`,`transcript` AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "knownGene.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`knownCanonical` INNER JOIN `knownGene` ON ",
-                                "knownCanonical.transcript=knownGene.name ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "`gene_id` ORDER BY `chromosome`, `start`",
-                                sep=""))
-                        },
-                        hg38 = {
-                            return(paste("SELECT knownCanonical.chrom AS ",
-                                "`chromosome`,`chromStart` AS `start`,",
-                                "`chromEnd` AS `end`,`transcript` AS ",
-                                "`gene_id`,0 AS `gc_content`,knownGene.strand ",
-                                "AS `strand`,`geneName` AS `gene_name`,'NA' ",
-                                "AS `biotype` FROM `knownCanonical` INNER ",
-                                "JOIN `knownGene` ON ",
-                                "knownCanonical.transcript=knownGene.name ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",                                
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "`gene_id` ORDER BY `chromosome`, `start`",
-                                sep=""))
-                            # Should be the same as hg19 but is like hg18
-                        },
-                        mm9 = {
-                            return(paste("SELECT knownCanonical.chrom AS ",
-                                "`chromosome`,`chromStart` AS `start`,",
-                                "`chromEnd` AS `end`,`transcript` AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "knownGene.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`knownCanonical` INNER JOIN `knownGene` ON ",
-                                "knownCanonical.transcript=knownGene.name ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "`gene_id` ORDER BY `chromosome`, `start`",
-                                sep=""))
-                        },
-                        mm10 = {
-                            return(paste("SELECT knownCanonical.chrom AS ",
-                                "`chromosome`,`chromStart` AS `start`,",
-                                "`chromEnd` AS `end`,`transcript` AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "knownGene.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`knownCanonical` INNER JOIN `knownGene` ON ",
-                                "knownCanonical.transcript=knownGene.name ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "`gene_id` ORDER BY `chromosome`, `start`",
-                                sep=""))
-                        },
-                        rn5 = {
-                            return(paste("SELECT mgcGenes.chrom AS ",
-                                "`chromosome`,`txStart` AS `start`,`txEnd` ",
-                                "AS `end`,mgcGenes.name AS `gene_id`,0 AS ",
-                                "`gc_content`,mgcGenes.strand AS `strand`,",
-                                "`name2` AS `gene_name`,`source` AS `biotype` ",
-                                "FROM `mgcGenes` INNER JOIN ",
-                                "`ensemblToGeneName` ON ",
-                                "mgcGenes.name2=ensemblToGeneName.value INNER ",
-                                "JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        dm3 = {
-                            return(paste("SELECT flyBaseCanonical.chrom AS ",
-                                "`chromosome`,`chromStart` AS `start`,",
-                                "`chromEnd` AS `end`,`transcript` AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "flyBaseGene.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`flyBaseCanonical` INNER JOIN `flyBaseGene` ",
-                                "ON flyBaseCanonical.transcript=",
-                                "flyBaseGene.name INNER JOIN ",
-                                "`flyBaseToRefSeq` ON ",
-                                "flyBaseCanonical.transcript=",
-                                "flyBaseToRefSeq.name INNER JOIN `refFlat` ON ",
-                                "flyBaseToRefSeq.value=refFlat.name INNER ",
-                                "JOIN `ensemblToGeneName` ON ",
-                                "ensemblToGeneName.value=refFlat.geneName ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        danrer7 = {
-                            return(paste("SELECT mgcGenes.chrom AS ",
-                                "`chromosome`,`txStart` AS `start`,`txEnd` ",
-                                "AS `end`,mgcGenes.name AS `gene_id`,0 AS ",
-                                "`gc_content`,mgcGenes.strand AS `strand`,",
-                                "`name2` AS `gene_name`,`source` AS `biotype` ",
-                                "FROM `mgcGenes` INNER JOIN ",
-                                "`ensemblToGeneName` ON ",
-                                "mgcGenes.name2=ensemblToGeneName.value INNER ",
-                                "JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        pantro4 = {
-                            warnwrap("No UCSC Genome annotation for Pan ",
-                                "troglodytes! Will use RefSeq instead...",
-                                now=TRUE)
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "refFlat.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
-                                "refFlat.geneName=ensemblToGeneName.value ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        tair10 = {
-                            warnwrap("Arabidopsis thaliana genome is not ",
-                                "supported by UCSC Genome Borwser database! ",
-                                "Will automatically switch to Ensembl...",
-                                now=TRUE)
-                            return(FALSE)
-                        }
-                    )
-                },
-                refseq = {
-                    switch(org,
-                        hg18 = {
-                            return(paste("SELECT  refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,refFlat.strand ",
-                                "AS `strand`,`geneName` AS `gene_name`,'NA' ",
-                                "AS `biotype` FROM `refFlat` INNER JOIN ",
-                                "`knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER JOIN ",
-                                "`knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "GROUP BY refFlat.name ORDER BY `chromosome`,",
-                                " `start`",
-                                sep=""))
-                        },
-                        hg19 = {
-                            return(paste("SELECT  refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "refFlat.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER ",
-                                "JOIN `knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "GROUP BY refFlat.name ORDER BY `chromosome`,",
-                                " `start`",
-                                sep=""))
-                        },
-                        hg38 = {
-                            return(paste("SELECT  refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,refFlat.strand ",
-                                "AS `strand`,`geneName` AS `gene_name`,'NA' ",
-                                "AS `biotype` FROM `refFlat` INNER JOIN ",
-                                "`knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER JOIN ",
-                                "`knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "GROUP BY refFlat.name ORDER BY `chromosome`,",
-                                " `start`",
-                                sep=""))
-                            # Should be the same as hg19 but is as hg18
-                        },
-                        mm9 = {
-                            return(paste("SELECT  refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "refFlat.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER ",
-                                "JOIN `knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "GROUP BY refFlat.name ORDER BY `chromosome`,",
-                                " `start`",
-                                sep=""))
-                        },
-                        mm10 = {
-                            return(paste("SELECT  refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "refFlat.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER ",
-                                "JOIN `knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "GROUP BY refFlat.name ORDER BY `chromosome`,",
-                                " `start`",
-                                sep=""))
-                        },
-                        rn5 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "refFlat.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
-                                "refFlat.geneName=ensemblToGeneName.value ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        dm3 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,refFlat.strand ",
-                                "AS `strand`,`geneName` AS `gene_name`,",
-                                "`source` AS `biotype` FROM `refFlat` INNER ",
-                                "JOIN `ensemblToGeneName` ON ",
-                                "ensemblToGeneName.value=refFlat.geneName ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        danrer7 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "refFlat.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
-                                "refFlat.geneName=ensemblToGeneName.value ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        pantro4 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.txStart AS `start`,",
-                                "refFlat.txEnd AS `end`,refFlat.name AS ",
-                                "`gene_id`,0 AS `gc_content`,",
-                                "refFlat.strand AS `strand`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
-                                "refFlat.geneName=ensemblToGeneName.value ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        tair10 = {
-                            warnwrap("Arabidopsis thaliana genome is not ",
-                                "supported by UCSC Genome Borwser database! ",
-                                "Will automatically switch to Ensembl...",
-                                now=TRUE)
-                            return(FALSE)
-                        }
-                    )
-                }
-            )
-        },
-        exon = {
-            switch(refdb,
-                ucsc = {
-                    switch(org,
-                        hg18 = {
-                            return(paste("SELECT knownGene.chrom AS ",
-                                "`chromosome`,knownGene.exonStarts AS `start`,",
-                                "knownGene.exonEnds AS `end`,knownGene.name ",
-                                "AS `exon_id`,knownGene.strand AS `strand`,",
-                                "`transcript` AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,'NA' AS `biotype` FROM ",
-                                "`knownGene` INNER JOIN `knownCanonical` ON ",
-                                "knownGene.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "knownGene.name ORDER BY `chromosome`, `start`",
-                                sep=""))
-                        },
-                        hg19 = {
-                            return(paste("SELECT knownGene.chrom AS ",
-                                "`chromosome`,knownGene.exonStarts AS `start`,",
-                                "knownGene.exonEnds AS `end`,knownGene.name ",
-                                "AS `exon_id`,knownGene.strand AS `strand`,",
-                                "`transcript` AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`knownGene` INNER JOIN `knownCanonical` ON ",
-                                "knownGene.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "knownGene.name ORDER BY `chromosome`, `start`",
-                                sep=""))
-                        },
-                        hg38 = {
-                            return(paste("SELECT knownGene.chrom AS ",
-                                "`chromosome`,knownGene.exonStarts AS `start`,",
-                                "knownGene.exonEnds AS `end`,knownGene.name ",
-                                "AS `exon_id`,knownGene.strand AS `strand`,",
-                                "`transcript` AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,'NA' AS `biotype` FROM ",
-                                "`knownGene` INNER JOIN `knownCanonical` ON ",
-                                "knownGene.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "knownGene.name ORDER BY `chromosome`, `start`",
-                                sep=""))
-                            # Should be the same as hg19 but is as hg18
-                        },
-                        mm9 = {
-                            return(paste("SELECT knownGene.chrom AS ",
-                                "`chromosome`,knownGene.exonStarts AS `start`,",
-                                "knownGene.exonEnds AS `end`,knownGene.name ",
-                                "AS `exon_id`,knownGene.strand AS `strand`,",
-                                "`transcript` AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`knownGene` INNER JOIN `knownCanonical` ON ",
-                                "knownGene.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "knownGene.name ORDER BY `chromosome`, `start`",
-                                sep=""))
-                        },
-                        mm10 = {
-                            return(paste("SELECT knownGene.chrom AS ",
-                                "`chromosome`,knownGene.exonStarts AS `start`,",
-                                "knownGene.exonEnds AS `end`,knownGene.name ",
-                                "AS `exon_id`,knownGene.strand AS `strand`,",
-                                "`transcript` AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`knownGene` INNER JOIN `knownCanonical` ON ",
-                                "knownGene.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "knownCanonical.transcript=knownToRefSeq.name ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "INNER JOIN `refFlat` ON ",
-                                "knownToRefSeq.value=refFlat.name GROUP BY ",
-                                "knownGene.name ORDER BY `chromosome`, `start`",
-                                sep=""))
-                        },
-                        rn5 = {
-                            return(paste("SELECT mgcGenes.chrom AS ",
-                                "`chromosome`,`exonStarts` AS `start`,",
-                                "`exonEnds` AS `end`,mgcGenes.name AS ",
-                                "`exon_id`,mgcGenes.strand AS `strand`,",
-                                "mgcGenes.name AS `gene_id`,`name2` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`mgcGenes` INNER JOIN `ensemblToGeneName` ON ",
-                                "mgcGenes.name2=ensemblToGeneName.value INNER ",
-                                "JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        dm3 = {
-                            return(paste("SELECT flyBaseCanonical.chrom AS ",
-                                "`chromosome`,flyBaseGene.exonStarts AS ",
-                                "`start`,flyBaseGene.exonEnds AS `end`,",
-                                "`transcript` AS `exon_id`,flyBaseGene.strand ",
-                                "AS `strand`,`transcript` AS `gene_id`,",
-                                "`geneName` AS `gene_name`,`source` AS ",
-                                "`biotype` FROM `flyBaseCanonical` INNER JOIN ",
-                                "`flyBaseGene` ON ",
-                                "flyBaseCanonical.transcript=flyBaseGene.name ",
-                                "INNER JOIN `flyBaseToRefSeq` ON ",
-                                "flyBaseCanonical.transcript=",
-                                "flyBaseToRefSeq.name INNER JOIN `refFlat` ON ",
-                                "flyBaseToRefSeq.value=refFlat.name ",
-                                "INNER JOIN `ensemblToGeneName` ON ",
-                                "ensemblToGeneName.value=refFlat.geneName ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        danrer7 = {
-                            return(paste("SELECT mgcGenes.chrom AS ",
-                                "`chromosome`,`exonStarts` AS `start`,",
-                                "`exonEnds` AS `end`,mgcGenes.name AS ",
-                                "`exon_id`,mgcGenes.strand AS `strand`,",
-                                "mgcGenes.name AS `gene_id`,`name2` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`mgcGenes` INNER JOIN `ensemblToGeneName` ON ",
-                                "mgcGenes.name2=ensemblToGeneName.value INNER ",
-                                "JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        pantro4 = {
-                            warnwrap("No UCSC Genome annotation for Pan ",
-                                "troglodytes! Will use RefSeq instead...",
-                                now=TRUE)
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
-                                "refFlat.geneName=ensemblToGeneName.value ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        tair10 = {
-                            warnwrap("Arabidopsis thaliana genome is not ",
-                                "supported by UCSC Genome Borwser database! ",
-                                "Will automatically switch to Ensembl...",
-                                now=TRUE)
-                            return(FALSE)
-                        }
-                    )
-                },
-                refseq = {
-                    switch(org,
-                        hg18 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,'NA' AS `biotype` FROM `refFlat` ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER JOIN ",
-                                "`knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        hg19 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER JOIN ",
-                                "`knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        hg38 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,'NA' AS `biotype` FROM `refFlat` ",
-                                "INNER JOIN `knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER JOIN ",
-                                "`knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                            # Should be the same as hg19 but is as hg18
-                        },
-                        mm9 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER JOIN ",
-                                "`knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        mm10 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `knownToRefSeq` ON ",
-                                "refFlat.name=knownToRefSeq.value INNER JOIN ",
-                                "`knownCanonical` ON ",
-                                "knownToRefSeq.name=knownCanonical.transcript ",
-                                "INNER JOIN `knownToEnsembl` ON ",
-                                "knownCanonical.transcript=knownToEnsembl.name",
-                                " INNER JOIN `ensemblSource` ON ",
-                                "knownToEnsembl.value=ensemblSource.name ",
-                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        rn5 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
-                                "refFlat.geneName=ensemblToGeneName.value ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        dm3 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
-                                "ensemblToGeneName.value=refFlat.geneName ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `gene_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        danrer7 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
-                                "refFlat.geneName=ensemblToGeneName.value ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        pantro4 = {
-                            return(paste("SELECT refFlat.chrom AS ",
-                                "`chromosome`,refFlat.exonStarts AS `start`,",
-                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
-                                "`exon_id`,refFlat.strand AS `strand`,",
-                                "refFlat.name AS `gene_id`,`geneName` AS ",
-                                "`gene_name`,`source` AS `biotype` FROM ",
-                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
-                                "refFlat.geneName=ensemblToGeneName.value ",
-                                "INNER JOIN `ensemblSource` ON ",
-                                "ensemblToGeneName.name=ensemblSource.name ",
-                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
-                                "`start`",
-                                sep=""))
-                        },
-                        tair10 = {
-                            warnwrap("Arabidopsis thaliana genome is not ",
-                                "supported by UCSC Genome Borwser database! ",
-                                "Will automatically switch to Ensembl...",
-                                now=TRUE)
-                            return(FALSE)
-                        }
-                    )
-                }
-            )
-        }
-    )
-}
-
-#' Return host, username and password for UCSC Genome Browser database
-#'
-#' Returns a character vector with a hostname, username and password to connect
-#' to the UCSC Genome Browser database to retrieve annotation. Internal use.
-#'
-#' @return A named character vector.
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' db.creds <- get.ucsc.credentials()
-#'}
-get.ucsc.credentials <- function() {
-    return(c(
-        host="genome-mysql.cse.ucsc.edu",
-        user="genome",
-        password=""
-    ))
 }
 
 #' Return a proper formatted organism alias
@@ -3614,9 +2917,14 @@ make.sample.list <- function(input) {
 #' @author Panagiotis Moulos
 make.project.path <- function(path,f=NULL) {
     if (is.na(path) || is.null(path)) {
-        if (!is.data.frame(f) && !is.null(f) && !is.list(f) && file.exists(f))
-            main.path <- file.path(dirname(f),paste("metaseqr_result_",
-                format(Sys.time(),format="%Y%m%d%H%M%S"),sep=""))
+        if (!is.data.frame(f) && !is.null(f) && !is.list(f) && file.exists(f)) {
+            if (length(grep(".RData$",f))>0)
+                main.path <- file.path(getwd(),paste("metaseqr_result_",
+                    format(Sys.time(),format="%Y%m%d%H%M%S"),sep=""))
+            else
+                main.path <- file.path(dirname(f),paste("metaseqr_result_",
+                    format(Sys.time(),format="%Y%m%d%H%M%S"),sep=""))
+        }
         else
             main.path <- file.path(getwd(),paste("metaseqr_result_",
                 format(Sys.time(),format="%Y%m%d%H%M%S"),sep=""))

@@ -25,7 +25,7 @@
 }
 \examples{
 \donttest{
-db.query <- get.ucsc.query("gene","ucsc")
+db.query <- get.ucsc.query("hg18","gene","ucsc")
 }
 }
 \author{
