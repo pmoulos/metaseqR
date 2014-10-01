@@ -862,12 +862,23 @@ metaseqr <- function(
     {
         warning("When restoring a previous analysis, sample.list argument is ",
             "not necessary! Ignoring...")
-        sample.list <- NULL
         from.previous <- TRUE
+        tmp.env <- new.env()
+        disp("Restoring previous analysis from ",basename(counts))
+        load(counts,tmp.env)
+        sample.list <- tmp.env$sample.list
+        count.type <- tmp.env$count.type
     }
     if (!missing(counts) && missing(sample.list) && is.character(counts) 
         && file.exists(counts) && length(grep(".RData$",counts))>0)
+    { # Time to load previous analysis if existing
         from.previous <- TRUE
+        tmp.env <- new.env()
+        disp("Restoring previous analysis from ",basename(counts))
+        load(counts,tmp.env)
+        sample.list <- tmp.env$sample.list
+        count.type <- tmp.env$count.type
+    }
     if (missing(sample.list) && !from.previous || (!is.list(sample.list) &&
         !file.exists(sample.list)))
         stop("You must provide a list with condition names and sample names ",
@@ -933,16 +944,6 @@ metaseqr <- function(
         if (length(which(!is.na(match(samples,aline)))) != length(samples))
             stopwrap("The sample names provided in the counts file/list do ",
                 "not match with those of the sample.list!")
-    }
-    
-    # Time to load previous analysis if existing
-    if (from.previous) 
-    {
-        tmp.env <- new.env()
-        disp("Restoring previous analysis from ",basename(counts))
-        load(counts,tmp.env)
-        sample.list <- tmp.env$sample.list
-        count.type <- tmp.env$count.type
     }
 
     file.type <- tolower(file.type[1])
@@ -1303,7 +1304,7 @@ metaseqr <- function(
         }
         else
         {
-            counts <- tmp.env$counts
+            counts <- tmp.env$the.counts
             exon.data <- tmp.env$exon.data
             gene.data <- tmp.env$gene.data
         }
@@ -1470,14 +1471,14 @@ metaseqr <- function(
         }
         else
         {
-            gene.counts <- tmp.env$counts
+            gene.counts <- tmp.env$gene.counts
             gene.data <- tmp.env$gene.data
         }
         
         total.gene.data <- gene.data # We need this for some total stats
         exon.filter.result <- NULL
 
-        if (annotation!="embedded") # Else everything is provided and done
+        if (annotation!="embedded" & !from.previous) # Else everything is provided and done
         {
             if (!is.null(counts)) # Otherwise it's coming ready from read2count
             {
