@@ -1049,7 +1049,7 @@ diagplot.noiseq.saturation <- function(x,o,tb,path=NULL) {
             }
         }
         grid()
-        legend(
+        graphics::legend(
             x="topleft",legend=colnames(ynab)[2:ncol(ynab)],xjust=1,yjust=0,
             box.lty=0,x.intersp=0.5,cex=0.6,text.font=2,
             col=colspace[1:(ncol(ynab)-1)],pch=pchspace[1:(ncol(ynab)-1)]
@@ -1067,7 +1067,7 @@ diagplot.noiseq.saturation <- function(x,o,tb,path=NULL) {
             points(yab[,"depth"],yab[,b],pch=16,col=colspace[co],cex=1.2)
         }
         grid()
-        legend(
+        graphics::legend(
             x="topleft",legend=c("global","protein_coding"),xjust=1,yjust=0,
             box.lty=0,lty=2,x.intersp=0.5,cex=0.7,text.font=2,
             col=colspace[1:2],pch=pchspace[1:2]
@@ -1109,7 +1109,7 @@ diagplot.noiseq.saturation <- function(x,o,tb,path=NULL) {
             points(depth[[n]],y[,n],pch=pchspace[co],col=colspace[co])
         }
         grid()
-        legend(
+        graphics::legend(
             x="bottomright",legend=colnames(y),xjust=1,yjust=0,
             box.lty=0,x.intersp=0.5,
             col=colspace[1:length(colnames(y))],
@@ -1229,7 +1229,7 @@ diagplot.volcano <- function(f,p,con=NULL,fcut=1,pcut=0.05,alt.names=NULL,
         abline(v=-fcut,lty=2)
         abline(v=fcut,lty=2)
         grid()
-        legend(
+        graphics::legend(
             x="topleft",
             legend=c("up-regulated","down-regulated","unregulated",
                 "p-value threshold","fold change threshold"),
@@ -2374,7 +2374,7 @@ diagplot.roc <- function(truth,p,sig=0.05,x="fpr",y="tpr",output="x11",
         title(xlab=ax.name[[x]],ylab=ax.name[[y]])
         auc.text <- as.character(sapply(ROC,function(x)
             round(x$AUC,digits=3)))
-        legend(x="bottomright",col=colspace,lty=1,cex=0.9,
+        graphics::legend(x="bottomright",col=colspace,lty=1,cex=0.9,
             legend=paste(names(ROC)," (AUC = ",auc.text,")",sep=""))
 
         graphics.close(output)
@@ -2628,7 +2628,7 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 grid()
                 title(main="Selected genes vs False Positives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="topleft",legend=names(ftdr.list),
+                graphics::legend(x="topleft",legend=names(ftdr.list),
                     col=colspace,lty=1)
             },
             tpc = {
@@ -2641,7 +2641,7 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 grid()
                 title(main="Selected genes vs True Positives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="bottomright",legend=names(ftdr.list),
+                graphics::legend(x="bottomright",legend=names(ftdr.list),
                     col=colspace,lty=1)
             },
             fnc = {
@@ -2654,7 +2654,7 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 grid()
                 title(main="Selected genes vs False Negatives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="topleft",legend=names(ftdr.list),
+                graphics::legend(x="topleft",legend=names(ftdr.list),
                     col=colspace,lty=1)
             },
             tnc = {
@@ -2667,8 +2667,8 @@ diagplot.ftd <- function(truth,p,type="fpc",N=2000,output="x11",path=NULL,
                 grid()
                 title(main="Selected genes vs True Negatives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="bottomright",legend=names(ftdr.list),col=colspace,
-                    lty=1)
+                graphics::legend(x="bottomright",legend=names(ftdr.list),
+                    col=colspace,lty=1)
             }    
         )
 
@@ -2784,8 +2784,8 @@ diagplot.avg.ftd <- function(ftdr.obj,output="x11",path=NULL,draw=TRUE,...) {
                 grid()
                 title(main="Selected genes vs False Positives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="topleft",legend=colnames(means),col=colspace,
-                    lty=1)
+                graphics::legend(x="topleft",legend=colnames(means),
+                    col=colspace,lty=1)
             },
             tpc = {
                 plot.window(xlim,ylim)
@@ -2797,8 +2797,8 @@ diagplot.avg.ftd <- function(ftdr.obj,output="x11",path=NULL,draw=TRUE,...) {
                 grid()
                 title(main="Selected genes vs True Positives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="bottomright",legend=colnames(means),col=colspace,
-                    lty=1)
+                graphics::legend(x="bottomright",legend=colnames(means),
+                    col=colspace,lty=1)
             },
             fnc = {
                 plot.window(xlim,ylim,log="y")
@@ -2810,8 +2810,8 @@ diagplot.avg.ftd <- function(ftdr.obj,output="x11",path=NULL,draw=TRUE,...) {
                 grid()
                 title(main="Selected genes vs False Negatives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="topleft",legend=colnames(means),col=colspace,
-                    lty=1)
+                graphics::legend(x="topleft",legend=colnames(means),
+                    col=colspace,lty=1)
             },
             tnc = {
                 plot.window(xlim,ylim)
@@ -2823,8 +2823,8 @@ diagplot.avg.ftd <- function(ftdr.obj,output="x11",path=NULL,draw=TRUE,...) {
                 grid()
                 title(main="Selected genes vs True Negatives",
                     xlab="Number of selected genes",ylab=y.name[[type]])
-                legend(x="bottomright",legend=colnames(means),col=colspace,
-                    lty=1)
+                graphics::legend(x="bottomright",legend=colnames(means),
+                    col=colspace,lty=1)
             }
         )
         
@@ -3017,6 +3017,7 @@ cdplot <- function (dat,samples=NULL,...) {
     for (i in 2:length(samples))
         lines(dat[,1],dat[,samples[i]],col=miscolores[i])
 
-    legend("bottom",legend=samples,text.col=miscolores[1:length(samples)],
-        bty="n",lty=1,lwd=2,col=miscolores[1:length(samples)])
+    graphics::legend("bottom",legend=samples,
+        text.col=miscolores[1:length(samples)],bty="n",lty=1,lwd=2,
+        col=miscolores[1:length(samples)])
 }

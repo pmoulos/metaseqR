@@ -170,7 +170,8 @@ filter.genes <- function(gene.counts,gene.data,gene.filters) {
             },
             expression = {
                 if (!is.null(gene.filters$expression)) {
-                    if (gene.filters$expression$median) {
+                    if (!is.null(gene.filters$expression$median) && 
+                        gene.filters$expression$median) {
                         md <- median(gene.counts)
                         the.dead.median <- rownames(gene.counts)[which(
                             apply(gene.counts,1,filter.low,md))]
@@ -178,7 +179,8 @@ filter.genes <- function(gene.counts,gene.data,gene.filters) {
                     }
                     else
                         the.dead.median <- md <- NULL
-                    if (gene.filters$expression$mean) {
+                    if (!is.null(gene.filters$expression$mean) &&
+                        gene.filters$expression$mean) {
                         mn <- mean(gene.counts)
                         the.dead.mean <- rownames(gene.counts)[which(apply(
                             gene.counts,1,filter.low,mn))]
@@ -186,7 +188,8 @@ filter.genes <- function(gene.counts,gene.data,gene.filters) {
                     }
                     else
                         the.dead.mean <- mn <- NULL
-                    if (!is.na(gene.filters$expression$quantile)) {
+                    if (!is.null(gene.filters$expression$quantile) &&
+                        !is.na(gene.filters$expression$quantile)) {
                         qu <- quantile(gene.counts,
                             gene.filters$expression$quantile)
                         the.dead.quantile <- rownames(gene.counts)[which(
@@ -195,7 +198,8 @@ filter.genes <- function(gene.counts,gene.data,gene.filters) {
                     }
                     else
                         the.dead.quantile <- qu <- NULL
-                    if (!is.na(gene.filters$expression$known)) {
+                    if (!is.null(gene.filters$expression$known) &&
+                        !is.na(gene.filters$expression$known)) {
                         # Think about the case of embedded
                         bio.cut <- match(gene.filters$expression$known,
                             gene.data$gene_name) 
@@ -208,7 +212,8 @@ filter.genes <- function(gene.counts,gene.data,gene.filters) {
                     }
                     else
                         the.dead.known <- the.bio.cut <- NULL
-                    if (!is.na(gene.filters$expression$custom)) {
+                    if (!is.null(gene.filters$expression$custom) &&
+                        !is.na(gene.filters$expression$custom)) {
                         # For future use
                         the.dead.custom <- NULL
                     }

@@ -9,7 +9,7 @@
         id.col = 4, gc.col = NA, name.col = NA, bt.col = NA,
         annotation = c("download", "embedded"),
         org = c("hg18", "hg19", "hg38", "mm9", "mm10", "rn5", "dm3", 
-            "danrer7", "pantro4", "tair10"),
+            "danrer7", "pantro4", "susscr3", "tair10", "custom"),
         refdb = c("ensembl", "ucsc", "refseq"),
         count.type = c("gene", "exon"),
         exon.filters = list(min.active.exons = list(exons.per.gene = 5, 
@@ -150,7 +150,7 @@
 
     \item{contrast}{a character vector of contrasts to be
     tested in the statistical testing step(s) of the metaseqr
-    pipeline. Each element of the should STRICTLY have the
+    pipeline. Each element of contrast should STRICTLY have the
     format "ConditionA_vs_ConditionB_vs_...". A valid example
     based on the \code{sample.list} above is \code{contrast
     <- c("ConditionA_vs_ConditionB",}
@@ -211,8 +211,11 @@
     \code{"hg38"},  for mouse genomes \code{"mm9"}, \code{"mm10"}, 
     for rat genome \code{"rn5"}, for drosophila genome
     \code{"dm3"}, for zebrafish genome \code{"danrer7"}, for
-    chimpanzee genome \code{"pantro4"} and for Arabidopsis 
-    thaliana genome \code{"tair10"}.}
+    chimpanzee genome \code{"pantro4"}, for pig genome 
+    \code{"susscr3"} and for Arabidopsis thaliana genome 
+    \code{"tair10"}. Finally, \code{"custom"} will instruct 
+    metaseqR to completely ignore the \code{org} argument and 
+    depend solely on annotation file provided by the user.}
 
     \item{refdb}{the reference annotation repository from
     which to retrieve annotation elements to use with

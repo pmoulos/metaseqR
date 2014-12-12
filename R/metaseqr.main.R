@@ -132,8 +132,10 @@
 #' @param org the supported organisms by metaseqr. These can be, for human genomes
 #' \code{"hg18"}, \code{"hg19"} or \code{"hg38"} for mouse genomes \code{"mm9"},
 #' \code{"mm10"}, for rat genomes \code{"rn5"}, for drosophila genome \code{"dm3"}, 
-#' for zebrafish genome \code{"danrer7"}, for chimpanzee genome \code{"pantro4"} 
-#' and for Arabidopsis thaliana genome \code{"tair10"}.
+#' for zebrafish genome \code{"danrer7"}, for chimpanzee genome \code{"pantro4"},
+#' for pig genome \code{"susScr3"} and for Arabidopsis thaliana genome \code{"tair10"}.
+#' Finally, \code{"custom"} will instruct metaseqR to completely ignore the 
+#' \code{org} argument and depend solely on annotation file provided by the user.
 #' @param refdb the reference annotation repository from which to retrieve annotation
 #' elements to use with metaseqr. It can be one of \code{"ensembl"} (default),
 #' \code{"ucsc"} or \code{"refseq"}.
@@ -780,7 +782,7 @@ metaseqr <- function(
     bt.col=NA,
     annotation=c("download","embedded"),
     org=c("hg18","hg19","hg38","mm9","mm10","rn5","dm3","danrer7","pantro4",
-        "tair10"),
+        "susscr3","tair10","custom"),
     refdb=c("ensembl","ucsc","refseq"),
     count.type=c("gene","exon"),
     exon.filters=list(
@@ -963,23 +965,28 @@ metaseqr <- function(
     export.values <- tolower(export.values)
     export.stats <- tolower(export.stats)
     if (!is.null(preset)) preset <- tolower(preset[1])
-
-    if (!is.data.frame(counts) && !is.null(counts) && !is.list(counts))
-    {
-        check.file.args("counts",counts)
-        if (from.previous)
-            counts.name <- "previously stored analysis object"
-        else
-            counts.name <- basename(counts)
-    }
-    else if (is.list(counts))
-    {
-        counts.name <- "previously stored gene model"
-    }
-    else
-    {
-        counts.name <- "imported custom data frame"
-    }
+	
+	if (from.raw)
+		counts.name <- "imported sam/bam/bed files"
+	else
+	{
+		if (!is.data.frame(counts) && !is.null(counts) && !is.list(counts))
+		{
+			check.file.args("counts",counts)
+			if (from.previous)
+				counts.name <- "previously stored analysis object"
+			else
+				counts.name <- basename(counts)
+		}
+		else if (is.list(counts) && !is.data.frame(counts))
+		{
+			counts.name <- "previously stored gene model"
+		}
+		else
+		{
+			counts.name <- "imported custom data frame"
+		}
+	}
 
     if (is.list(counts) && count.type=="exon" && annotation=="embedded")
     {
@@ -996,7 +1003,7 @@ metaseqr <- function(
     check.text.args("annotation",annotation,c("embedded","download"),
         multiarg=FALSE)
     check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","tair10"),multiarg=FALSE)
+        "danrer7","pantro4","susscr3","tair10","custom"),multiarg=FALSE)
     check.text.args("refdb",refdb,c("ensembl","ucsc","refseq"),multiarg=FALSE)
     check.text.args("count.type",count.type,c("gene","exon"),multiarg=FALSE)
     check.text.args("when.apply.filter",when.apply.filter,c("postnorm",
@@ -1255,7 +1262,8 @@ metaseqr <- function(
     if (count.type=="exon")
     {
         # Download gene annotation anyway if not previous analysis restored
-        if (!from.previous) {
+        if (!from.previous) 
+		{
             disp("Downloading gene annotation for ",org,"...")
             gene.data <- get.annotation(org,"gene",refdb)
         }
@@ -1310,51 +1318,49 @@ metaseqr <- function(
         }
 
         # Else everything is provided and done
-        if (!is.list(counts))
+        #if (is.data.frame(counts))
+		if (annotation!="embedded" & !from.previous)
         {
-            if (annotation!="embedded")
-            {
-                if (!is.null(counts)) # Otherwise it's coming ready from read2count
-                {
-                    if (!is.data.frame(counts) && !is.list(counts) 
-                        && !from.previous)
-                    {
-                        disp("Reading counts file ",counts.name,"...")
-                        exon.counts <- read.delim(counts)
-                    }
-                    else # Already a data frame as input
-                        exon.counts <- counts
-                    rownames(exon.counts) <- as.character(exon.counts[,id.col])
-                    exon.counts <- exon.counts[,unlist(sample.list,
-                        use.names=FALSE)]
-                }
-                else # Coming from read2count
-                {
-                    if (from.raw) # Double check
-                    {
-                        r2c <- read2count(the.list,exon.data,file.type,
-                            multic=multic)
-                        exon.counts <- r2c$counts
-                        # Merged exon data!
-                        exon.data <- r2c$mergedann
-                        if (is.null(libsize.list))
-                            libsize.list <- r2c$libsize
-                        if (export.counts.table) {
-                            disp("Exporting raw read counts table to ",
-                                file.path(PROJECT.PATH[["lists"]],
-                                "raw_counts_table.txt.gz"))
-                            res.file <- file.path(PROJECT.PATH[["lists"]],
-                                "raw_counts_table.txt.gz")
-                            gzfh <- gzfile(res.file,"w")
-                            write.table(cbind(
-                                exon.data[rownames(exon.counts),],
-                                exon.counts),gzfh,sep="\t",row.names=FALSE,
-                                quote=FALSE)
-                            close(gzfh)
-                        }
-                    }
-                }
-            }
+			if (!is.null(counts)) # Otherwise it's coming ready from read2count
+			{
+				if (!is.data.frame(counts) && !is.list(counts) 
+					&& !from.previous)
+				{
+					disp("Reading counts file ",counts.name,"...")
+					exon.counts <- read.delim(counts)
+				}
+				else # Already a data frame as input
+					exon.counts <- counts
+				rownames(exon.counts) <- as.character(exon.counts[,id.col])
+				exon.counts <- exon.counts[,unlist(sample.list,
+					use.names=FALSE)]
+			}
+			else # Coming from read2count
+			{
+				if (from.raw) # Double check
+				{
+					r2c <- read2count(the.list,exon.data,file.type,
+						multic=multic)
+					exon.counts <- r2c$counts
+					# Merged exon data!
+					exon.data <- r2c$mergedann
+					if (is.null(libsize.list))
+						libsize.list <- r2c$libsize
+					if (export.counts.table) {
+						disp("Exporting raw read counts table to ",
+							file.path(PROJECT.PATH[["lists"]],
+							"raw_counts_table.txt.gz"))
+						res.file <- file.path(PROJECT.PATH[["lists"]],
+							"raw_counts_table.txt.gz")
+						gzfh <- gzfile(res.file,"w")
+						write.table(cbind(
+							exon.data[rownames(exon.counts),],
+							exon.counts),gzfh,sep="\t",row.names=FALSE,
+							quote=FALSE)
+						close(gzfh)
+					}
+				}
+			}
             exon.counts <- cbind(exon.data[rownames(exon.counts),c("start","end",
                 "exon_id","gene_id")],exon.counts[,unlist(sample.list,
                 use.names=FALSE)])

@@ -866,6 +866,25 @@ get.defaults <- function(what,method=NULL) {
                         misc_RNA=FALSE
                     ))
                 },
+                susscr3 = {
+                    return(list(
+                        antisense=FALSE,
+                        protein_coding=FALSE,
+                        lincRNA=FALSE,
+                        pseudogene=FALSE,
+                        processed_transcript=FALSE,
+                        miRNA=FALSE,
+                        rRNA=TRUE,
+                        snRNA=FALSE,
+                        snoRNA=FALSE,
+                        misc_RNA=FALSE,
+                        non_coding=FALSE,
+                        IG_C_gene=FALSE,
+                        IG_J_gene=FALSE,
+                        IG_V_gene=FALSE,
+                        IG_V_pseudogene=TRUE
+                    ))
+                },
                 tair10 = {
                     return(list(
                         miRNA=FALSE,
@@ -1314,6 +1333,26 @@ validate.list.args <- function(what,method=NULL,arg.list) {
                         "IG_V_pseudogene","IG_C_pseudogene","IG_J_pseudogene",
                         "non_coding","sense_overlapping")
                     not.valid <- which(!valid)
+                },
+                pantro4 = {
+                    valid <- names(arg.list) %in% c("protein_coding",
+                        "pseudogene","processed_pseudogene","miRNA","rRNA",
+                        "snRNA","snoRNA","misc_RNA")
+                    not.valid <- which(!valid)
+                },
+                susscr3 = {
+                    valid <- names(arg.list) %in% c("antisense",
+                        "protein_coding","lincRNA","pseudogene",
+                        "processed_transcript","miRNA","rRNA","snRNA","snoRNA",
+                        "misc_RNA","non_coding","IG_C_gene","IG_J_gene",
+                        "IG_V_gene","IG_V_pseudogene")
+                    not.valid <- which(!valid)
+                },
+                tair10 = {
+                    valid <- names(arg.list) %in% c("miRNA","ncRNA",
+                        "protein_coding","pseudogene","rRNA","snoRNA",
+                        "snRNA","transposable_element","tRNA")
+                    not.valid <- which(!valid)
                 }
             )
             if (length(not.valid)>0) {
@@ -1398,12 +1437,17 @@ get.annotation <- function(org,type,refdb="ensembl",multic=FALSE) {
 #'}
 get.ensembl.annotation <- function(org,type) {
     if (org!="tair10")
-        mart <- useMart(biomart="ENSEMBL_MART_ENSEMBL",host=get.host(org),
-            dataset=get.dataset(org))
+        dat <- "ENSEMBL_MART_ENSEMBL"
     else
-        mart <- useMart(biomart="ENSEMBL_MART_PLANT",dataset=get.dataset(org))
-    #mart <- useMart(biomart="ensembl",host=get.host(org),
-    #    dataset=get.dataset(org))
+        dat <- "ENSEMBL_MART_PLANT"
+    mart <- tryCatch({
+            useMart(biomart=dat,host=get.host(org),dataset=get.dataset(org))
+        },
+        error=function(e) {
+            useMart(biomart=dat,host=get.alt.host(org),
+            dataset=get.dataset(org))
+        },
+        finally={})
     chrs.exp <- paste(get.valid.chrs(org),collapse="|")
     if (type=="gene") {
         bm <- getBM(attributes=get.gene.attributes(org),mart=mart)
@@ -1414,26 +1458,45 @@ get.ensembl.annotation <- function(org,type) {
             gene_id=bm$ensembl_gene_id,
             gc_content=bm$percentage_gc_content,
             strand=ifelse(bm$strand==1,"+","-"),
-            gene_name=if (org %in% c("hg18","hg19","mm9")) bm$external_gene_id else
-                bm$external_gene_name,
+            gene_name=if (org %in% c("hg18","mm9")) bm$external_gene_id 
+                else bm$external_gene_name,
             biotype=bm$gene_biotype
         )
         rownames(ann) <- ann$gene_id
     }
     else if (type=="exon") {
         bm <- getBM(attributes=get.exon.attributes(org),mart=mart)
-        ann <- data.frame(
-            chromosome=paste("chr",bm$chromosome_name,sep=""),
-            start=bm$exon_chrom_start,
-            end=bm$exon_chrom_end,
-            exon_id=bm$ensembl_exon_id,
-            gene_id=bm$ensembl_gene_id,
-            strand=ifelse(bm$strand==1,"+","-"),
-            gene_name=if (org %in% c("hg18","hg19","mm9")) bm$external_gene_id else
-                bm$external_gene_name,
-            biotype=bm$gene_biotype
-        )
-        rownames(ann) <- ann$exon_id
+        if (org == "hg19") {
+            disp("  Bypassing problem with hg19 Ensembl combined gene-exon",
+                "annotation... Will take slightly longer...")
+            bmg <- getBM(attributes=get.gene.attributes(org),mart=mart)
+            gene_name <- bmg$external_gene_name
+            names(gene_name) <- bmg$ensembl_gene_id
+            ann <- data.frame(
+                chromosome=paste("chr",bm$chromosome_name,sep=""),
+                start=bm$exon_chrom_start,
+                end=bm$exon_chrom_end,
+                exon_id=bm$ensembl_exon_id,
+                gene_id=bm$ensembl_gene_id,
+                strand=ifelse(bm$strand==1,"+","-"),
+                gene_name=gene_name[bm$ensembl_gene_id],
+                biotype=bm$gene_biotype
+            )
+            rownames(ann) <- ann$exon_id
+        }
+        else
+            ann <- data.frame(
+                chromosome=paste("chr",bm$chromosome_name,sep=""),
+                start=bm$exon_chrom_start,
+                end=bm$exon_chrom_end,
+                exon_id=bm$ensembl_exon_id,
+                gene_id=bm$ensembl_gene_id,
+                strand=ifelse(bm$strand==1,"+","-"),
+                gene_name=if (org %in% c("hg18","mm9")) bm$external_gene_id 
+                    else bm$external_gene_name,
+                biotype=bm$gene_biotype
+            )
+            rownames(ann) <- ann$exon_id
     }
     ann <- ann[order(ann$chromosome,ann$start),]
     ann <- ann[grep(chrs.exp,ann$chromosome),]
@@ -1489,7 +1552,7 @@ get.ucsc.annotation <- function(org,type,refdb="ucsc",multic=FALSE) {
 
     if (org=="tair10") {
         warnwrap("Arabidopsis thaliana genome is not supported by UCSC Genome ",
-            "Borwser database! Switching to Ensembl...")
+            "Browser database! Switching to Ensembl...")
         return(get.ensembl.annotation("tair10",type))
     }
 
@@ -1593,7 +1656,7 @@ get.gc.content <- function(ann,org) {
             "retrieve GC-content.")
     org <- tolower(org[1])
     check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","tair10"),multiarg=FALSE)
+        "danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
     # Convert annotation to GRanges
     disp("Converting annotation to GenomicRanges object...")
     if (packageVersion("GenomicRanges")<1.14)
@@ -1642,6 +1705,7 @@ get.ucsc.organism <- function(org) {
         dm3 = { return("dm3") },
         danrer7 = { return("danRer7") },
         pantro4 = { return("panTro4") },
+        susscr3 = { return("susScr3") },
         tair10 = { return("TAIR10") }
     )
 }
@@ -1687,6 +1751,9 @@ get.bs.organism <- function(org) {
             stopwrap("panTro4 is not yet supported by BSgenome! Please use ",
                 "Ensembl as annoation source.")
         },
+        susscr3 = {
+            return("BSgenome.Sscrofa.UCSC.susScr3")
+        },
         tair10 = {
             stopwrap("TAIR10 is not yet supported by BSgenome! Please use ",
                 "Ensembl as annoation source.")
@@ -1717,10 +1784,10 @@ load.bs.genome <- function(org) {
             "proceed!")
     bs.org <- get.bs.organism(org)
     if (bs.org %in% installed.genomes())
-        bs.obj <- getBSgenome(org)
+        bs.obj <- getBSgenome(get.ucsc.organism(org))
     else {
         biocLite(bs.org)
-        bs.obj <- getBSgenome(org)
+        bs.obj <- getBSgenome(get.ucsc.organism(org))
     }
     return(bs.obj)
 }
@@ -1766,7 +1833,36 @@ get.host <- function(org) {
         dm3 = { return("www.ensembl.org") },
         danrer7 = { return("www.ensembl.org") },
         pantro4 = { return("www.ensembl.org") },
+        susscr3 = { return("www.ensembl.org") },
         tair10 = { return("www.ensembl.org") }
+    )
+}
+
+#' Annotation downloader helper
+#'
+#' Returns the appropriate Ensembl host address to get different versions of
+#' annotation from (alternative hosts). Internal use.
+#'
+#' @param org the organism for which to return the host address.
+#' @return A string with the host address.
+#' @author Panagiotis Moulos
+#' @examples
+#' \dontrun{
+#' mm9.host <- get.alt.host("mm9")
+#'}
+get.alt.host <- function(org) {
+    switch(org,
+        hg18 = { return("may2009.archive.ensembl.org") },
+        hg19 = { return("grch37.ensembl.org") },
+        hg38 = { return("uswest.ensembl.org") },
+        mm9 = { return("may2012.archive.ensembl.org") },
+        mm10 = { return("uswest.ensembl.org") },
+        rn5 = { return("uswest.ensembl.org") },
+        dm3 = { return("uswest.ensembl.org") },
+        danrer7 = { return("uswest.ensembl.org") },
+        pantro4 = { return("uswest.ensembl.org") },
+        susscr3 = { return("uswest.ensembl.org") },
+        tair10 = { return("uswest.ensembl.org") }
     )
 }
 
@@ -1794,6 +1890,7 @@ get.dataset <- function(org) {
         dm3 = { return("dmelanogaster_gene_ensembl") },
         danrer7 = { return("drerio_gene_ensembl") },
         pantro4 = { return("ptroglodytes_gene_ensembl") },
+        susscr3 = { return("sscrofa_gene_ensembl") },
         tair10 = { return("athaliana_eg_gene") }
     )
 }
@@ -1877,6 +1974,13 @@ get.valid.chrs <- function(org)
                 "chr3","chr4","chr5","chr6","chr7","chr8","chr9","chrX","chrY"
             ))
         },
+        susscr3 = {
+            return(c(
+                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
+                "chr17","chr18","chr2","chr3","chr4","chr5","chr6","chr7",
+                "chr8","chr9","chrX","chrY"
+            ))
+        },
         tair10 = {
             return(c(
                 "chr1","chr2","chr3","chr4","chr5"
@@ -1900,7 +2004,7 @@ get.valid.chrs <- function(org)
 #' gene.attr <- get.gene.attributes()
 #'}
 get.gene.attributes <- function(org) {
-    if (org %in% c("hg18","hg19","mm9"))
+    if (org %in% c("hg18","mm9"))
         return(c(
             "chromosome_name",
             "start_position",
@@ -1939,7 +2043,7 @@ get.gene.attributes <- function(org) {
 #' exon.attr <- get.exon.attributes()
 #'}
 get.exon.attributes <- function(org) {
-    if (org %in% c("hg18","hg19","mm9"))
+    if (org %in% c("hg18","mm9"))
         return(c(
             "chromosome_name",
             "exon_chrom_start",
@@ -1948,6 +2052,16 @@ get.exon.attributes <- function(org) {
             "strand",
             "ensembl_gene_id",
             "external_gene_id",
+            "gene_biotype"
+        ))
+    else if (org == "hg19")
+        return(c(
+            "chromosome_name",
+            "exon_chrom_start",
+            "exon_chrom_end",
+            "ensembl_exon_id",
+            "strand",
+            "ensembl_gene_id",
             "gene_biotype"
         ))
     else
@@ -2168,6 +2282,50 @@ get.strict.biofilter <- function(org) {
                 IG_J_pseudogene=TRUE,
                 non_coding=FALSE,
                 sense_overlapping=FALSE
+            ))
+        },
+        pantro4 = {
+            return(list(
+                protein_coding=FALSE,
+                pseudogene=TRUE,
+                processed_pseudogene=TRUE,
+                miRNA=FALSE,
+                rRNA=TRUE,
+                snRNA=TRUE,
+                snoRNA=TRUE,
+                misc_RNA=TRUE
+            ))
+        },
+        susscr3 = {
+            return(list(
+                antisense=FALSE,
+                protein_coding=FALSE,
+                lincRNA=FALSE,
+                pseudogene=TRUE,
+                processed_transcript=FALSE,
+                miRNA=FALSE,
+                rRNA=TRUE,
+                snRNA=TRUE,
+                snoRNA=TRUE,
+                misc_RNA=TRUE,
+                non_coding=FALSE,
+                IG_C_gene=TRUE,
+                IG_J_gene=TRUE,
+                IG_V_gene=TRUE,
+                IG_V_pseudogene=FALSE
+            ))
+        },
+        tair10 = {
+            return(list(
+                miRNA=FALSE,
+                ncRNA=FALSE,
+                protein_coding=FALSE,
+                pseudogene=TRUE,
+                rRNA=TRUE,
+                snoRNA=TRUE,
+                snRNA=TRUE,
+                transposable_element=FALSE,
+                tRNA=TRUE
             ))
         }
     )
@@ -3050,6 +3208,8 @@ make.report.messages <- function(lang) {
                         "genome version alias danRer7"),
                     pantro5=paste("chimpanzee (<em>Pan troglodytes</em>),",
                         "genome version alias panTro5"),
+                    susscr3=paste("pig (<em>Sus scrofa</em>),",
+                        "genome version alias susScr3"),
                     tair10=paste("arabidopsis (<em>Arabidobsis thaliana</em>)",
                         ",","genome version alias TAIR10")
                 ),

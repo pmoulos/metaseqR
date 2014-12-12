@@ -21,7 +21,7 @@ get.ucsc.dbl <- function(org,type,refdb="ucsc") {
     refdb <- tolower(refdb[1])
     check.text.args("type",type,c("gene","exon"))
     check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","tair10"),multiarg=FALSE)
+        "danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
     check.text.args("refdb",refdb,c("ucsc","refseq"))
     
     if (!require(RSQLite))
@@ -90,7 +90,7 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
     what <- tolower(what[1])
     check.text.args("type",type,c("gene","exon"))
     check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","tair10"),multiarg=FALSE)
+        "danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
     check.text.args("refdb",refdb,c("ucsc","refseq"))
     check.text.args("what",what,c("queries","fields"))
     switch(type,
@@ -204,6 +204,18 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
                                     get.ucsc.tbl.tpl("ensemblSource",what)
                             ))
                         },
+                        susscr3 = {
+                            warnwrap("No UCSC Genome annotation for Sus ",
+                                "scrofa! Will use RefSeq instead...",
+                                now=TRUE)
+                            return(list(
+                                refFlat=get.ucsc.tbl.tpl("refFlat",what),
+                                ensemblToGeneName=
+                                    get.ucsc.tbl.tpl("ensemblToGeneName",what),
+                                ensemblSource=
+                                    get.ucsc.tbl.tpl("ensemblSource",what)
+                            ))
+                        },
                         tair10 = {
                             warnwrap("Arabidopsis thaliana genome is not ",
                                 "supported by UCSC Genome Borwser database! ",
@@ -300,6 +312,15 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
                             ))
                         },
                         pantro4 = {
+                            return(list(
+                                refFlat=get.ucsc.tbl.tpl("refFlat",what),
+                                ensemblToGeneName=
+                                    get.ucsc.tbl.tpl("ensemblToGeneName",what),
+                                ensemblSource=
+                                    get.ucsc.tbl.tpl("ensemblSource",what)
+                            ))
+                        },
+                        susscr3 = {
                             return(list(
                                 refFlat=get.ucsc.tbl.tpl("refFlat",what),
                                 ensemblToGeneName=
@@ -429,6 +450,18 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
                                     get.ucsc.tbl.tpl("ensemblSource",what)
                             ))
                         },
+                        susscr3 = {
+                            warnwrap("No UCSC Genome annotation for Sus ",
+                                "scrofa! Will use RefSeq instead...",
+                                now=TRUE)
+                            return(list(
+                                refFlat=get.ucsc.tbl.tpl("refFlat",what),
+                                ensemblToGeneName=
+                                    get.ucsc.tbl.tpl("ensemblToGeneName",what),
+                                ensemblSource=
+                                    get.ucsc.tbl.tpl("ensemblSource",what)
+                            ))
+                        },
                         tair10 = {
                             warnwrap("Arabidopsis thaliana genome is not ",
                                 "supported by UCSC Genome Borwser database! ",
@@ -525,6 +558,15 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
                             ))
                         },
                         pantro4 = {
+                            return(list(
+                                refFlat=get.ucsc.tbl.tpl("refFlat",what),
+                                ensemblToGeneName=
+                                    get.ucsc.tbl.tpl("ensemblToGeneName",what),
+                                ensemblSource=
+                                    get.ucsc.tbl.tpl("ensemblSource",what)
+                            ))
+                        },
+                        susscr3 = {
                             return(list(
                                 refFlat=get.ucsc.tbl.tpl("refFlat",what),
                                 ensemblToGeneName=
@@ -786,7 +828,7 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
     refdb <- tolower(refdb[1])
     check.text.args("type",type,c("gene","exon"))
     check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","tair10"),multiarg=FALSE)
+        "danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
     check.text.args("refdb",refdb,c("ucsc","refseq"))
     switch(type,
         gene = {
@@ -956,9 +998,29 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
                                 "`start`",
                                 sep=""))
                         },
+                        susscr3 = {
+                            warnwrap("No UCSC Genome annotation for Sus ",
+                                "scrofa! Will use RefSeq instead...",
+                                now=TRUE)
+                            return(paste(
+                                "SELECT refFlat.chrom AS `chromosome`,",
+                                "refFlat.txStart AS `start`, refFlat.txEnd AS ",
+                                "`end`, refFlat.name AS `gene_id`, 0 AS ",
+                                "`gc_content`, refFlat.strand AS `strand`,",
+                                "`geneName` AS `gene_name`, `source` AS ",
+                                "`biotype` FROM `refFlat` INNER JOIN ",
+                                "`ensemblToGeneName` ON ",
+                                "refFlat.geneName=ensemblToGeneName.value ",
+                                "INNER JOIN `ensemblSource` ON ",
+                                "ensemblToGeneName.name=ensemblSource.name ",
+                                "GROUP BY `gene_id` ORDER BY `chromosome`,",
+                                "`start`",
+                                sep=""
+                            ))
+                        },
                         tair10 = {
                             warnwrap("Arabidopsis thaliana genome is not ",
-                                "supported by UCSC Genome Borwser database! ",
+                                "supported by UCSC Genome Browser database! ",
                                 "Will automatically switch to Ensembl...",
                                 now=TRUE)
                             return(FALSE)
@@ -1115,9 +1177,26 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
                                 "`start`",
                                 sep=""))
                         },
+                        susscr3 = {
+                            return(paste(
+                                "SELECT refFlat.chrom AS `chromosome`,",
+                                "refFlat.txStart AS `start`, refFlat.txEnd AS ",
+                                "`end`, refFlat.name AS `gene_id`, 0 AS ",
+                                "`gc_content`, refFlat.strand AS `strand`,",
+                                "`geneName` AS `gene_name`, `source` AS ",
+                                "`biotype` FROM `refFlat` INNER JOIN ",
+                                "`ensemblToGeneName` ON ",
+                                "refFlat.geneName=ensemblToGeneName.value ",
+                                "INNER JOIN `ensemblSource` ON ",
+                                "ensemblToGeneName.name=ensemblSource.name ",
+                                "GROUP BY `gene_id` ORDER BY `chromosome`,",
+                                "`start`",
+                                sep=""
+                            ))
+                        },
                         tair10 = {
                             warnwrap("Arabidopsis thaliana genome is not ",
-                                "supported by UCSC Genome Borwser database! ",
+                                "supported by UCSC Genome Browser database! ",
                                 "Will automatically switch to Ensembl...",
                                 now=TRUE)
                             return(FALSE)
@@ -1293,9 +1372,27 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
                                 "`start`",
                                 sep=""))
                         },
+                        susscr3 = {
+                            warnwrap("No UCSC Genome annotation for Sus ",
+                                "scrofa! Will use RefSeq instead...",
+                                now=TRUE)
+                            return(paste("SELECT refFlat.chrom AS ",
+                                "`chromosome`,refFlat.exonStarts AS `start`,",
+                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
+                                "`exon_id`,refFlat.strand AS `strand`,",
+                                "refFlat.name AS `gene_id`,`geneName` AS ",
+                                "`gene_name`,`source` AS `biotype` FROM ",
+                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
+                                "refFlat.geneName=ensemblToGeneName.value ",
+                                "INNER JOIN `ensemblSource` ON ",
+                                "ensemblToGeneName.name=ensemblSource.name ",
+                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
+                                "`start`",
+                                sep=""))
+                        },
                         tair10 = {
                             warnwrap("Arabidopsis thaliana genome is not ",
-                                "supported by UCSC Genome Borwser database! ",
+                                "supported by UCSC Genome Browser database! ",
                                 "Will automatically switch to Ensembl...",
                                 now=TRUE)
                             return(FALSE)
@@ -1452,9 +1549,24 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
                                 "`start`",
                                 sep=""))
                         },
+                        susscr3 = {
+                            return(paste("SELECT refFlat.chrom AS ",
+                                "`chromosome`,refFlat.exonStarts AS `start`,",
+                                "refFlat.exonEnds AS `end`,refFlat.name AS ",
+                                "`exon_id`,refFlat.strand AS `strand`,",
+                                "refFlat.name AS `gene_id`,`geneName` AS ",
+                                "`gene_name`,`source` AS `biotype` FROM ",
+                                "`refFlat` INNER JOIN `ensemblToGeneName` ON ",
+                                "refFlat.geneName=ensemblToGeneName.value ",
+                                "INNER JOIN `ensemblSource` ON ",
+                                "ensemblToGeneName.name=ensemblSource.name ",
+                                "GROUP BY `exon_id` ORDER BY `chromosome`, ",
+                                "`start`",
+                                sep=""))
+                        },
                         tair10 = {
                             warnwrap("Arabidopsis thaliana genome is not ",
-                                "supported by UCSC Genome Borwser database! ",
+                                "supported by UCSC Genome Browser database! ",
                                 "Will automatically switch to Ensembl...",
                                 now=TRUE)
                             return(FALSE)

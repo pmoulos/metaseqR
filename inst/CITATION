@@ -1,14 +1,14 @@
-bibentry("Manual",
-        title="metaseqR: An R package for the analysis and result reporting of RNA-Seq gene expression data using multiple statistical algorithms.",
-        author="Panagiotis Moulos",
+bibentry("Article",
+        title="Systematic integration of RNA-Seq statistical algorithms for accurate detection of differential gene expression patterns",
+        author="Moulos, Panagiotis and Hatzis, Pantelis",
         year="2014",
-        note="(Version 1.3.5)",
-        url="http://www.fleming.gr",
-
+        note="(Version 1.5.1)",
+        url="http://nar.oxfordjournals.org/content/early/2014/12/01/nar.gku1273.abstract",
+        journal = "Nucleic Acids Research",
         textVersion =
-        paste("Moulos, P. (2014). ",
-                "metaseqR: An R package for the analysis and result reporting of RNA-Seq gene expression data using multiple statistical algorithms. (Version 0.99.0). ",
-                "Available from http://www.fleming.gr",
+        paste("Moulos, P. and Hatzis P. (2014). ",
+                "Systematic integration of RNA-Seq statistical algorithms for accurate detection of differential gene expression patterns ",
+                "Nucleic Acids Research, 10.1093/nar/gku1273 .",
+                "Available from http://nar.oxfordjournals.org/content/early/2014/12/01/nar.gku1273.abstract",
                 sep=""),
-
         mheader = "To cite metaseqR in publications use:")
