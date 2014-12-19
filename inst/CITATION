@@ -1,8 +1,8 @@
 bibentry("Article",
         title="Systematic integration of RNA-Seq statistical algorithms for accurate detection of differential gene expression patterns",
-        author="Moulos, Panagiotis and Hatzis, Pantelis",
+        author="Panagiotis Moulos and Pantelis Hatzis",
         year="2014",
-        note="(Version 1.5.1)",
+        note="(Version 1.5.14)",
         url="http://nar.oxfordjournals.org/content/early/2014/12/01/nar.gku1273.abstract",
         journal = "Nucleic Acids Research",
         textVersion =

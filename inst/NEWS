@@ -229,7 +229,7 @@ BUG FIXES
 
     o None 
     
-CHANGES IN VERSION 1.5.13 (2014-12-11)
+CHANGES IN VERSION 1.5.14 (2014-12-19)
 --------------------------------------
 
 NEW FEATURES
@@ -244,3 +244,5 @@ BUG FIXES
     o Fixed problem when input counts are a data.frame and count.type in exon,
     introduced during package upgrades. Thanks to Ben Elsworth, Garvan
     Institute of Medical Research, Austria.
+    o Fixed problem related to a bug in the current version of edgeR GLM and 
+    the usage of ... in glmFit.

@@ -231,9 +231,12 @@ stat.edger <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
                         ms <- ms[which(!is.na(ms))]
                     design <- model.matrix(~0+s,data=dge$samples[ms,])
                     colnames(design) <- us
+                    #fit <- glmFit(dge[,ms],design=design,
+                    #    offset=stat.args$offset,
+                    #    weights=stat.args$weights,lib.size=stat.args$lib.size,
+                    #    prior.count=stat.args$prior.count,
+                    #    start=stat.args$start,method=stat.args$method)
                     fit <- glmFit(dge[,ms],design=design,
-                        offset=stat.args$offset,
-                        weights=stat.args$weights,lib.size=stat.args$lib.size,
                         prior.count=stat.args$prior.count,
                         start=stat.args$start,method=stat.args$method)
                     co <- makeContrasts(paste(us[2],us[1],sep="-"),
@@ -255,12 +258,15 @@ stat.edger <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
                         ms <- ms[which(!is.na(ms))]
                     design <- model.matrix(~0+s,data=dge$samples[ms,])
                     colnames(design) <- us
-                    fit <- glmFit(dge[,ms],design=design,
-                        offset=stat.args$offset,weights=stat.args$weights,
-                        lib.size=stat.args$lib.size,
-                        prior.count=stat.args$prior.count,
-                        start=stat.args$start,
-                        method=stat.args$method,dispersion=bcv^2)
+                    #fit <- glmFit(dge[,ms],design=design,
+                    #    offset=stat.args$offset,weights=stat.args$weights,
+                    #    lib.size=stat.args$lib.size,
+                    #    prior.count=stat.args$prior.count,
+                    #    start=stat.args$start,
+                    #    method=stat.args$method,dispersion=bcv^2)
+                    fit <- glmFit(dge[,ms],design=design,dispersion=bcv^2,
+                        prior.count=stat.args$prior.count,start=stat.args$start,
+                        method=stat.args$method)
                     co <- makeContrasts(paste(us[2],us[1],sep="-"),
                         levels=design)
                     lrt <- glmLRT(fit,contrast=co,test=stat.args$test)
@@ -277,17 +283,22 @@ stat.edger <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
                 ms <- ms[which(!is.na(ms))]
             design <- model.matrix(~s,data=dge$samples[ms,])
             if (repli)
-                fit <- glmFit(dge[,ms],design=design,offset=stat.args$offset,
-                    weights=stat.args$weights,lib.size=stat.args$lib.size,
-                    prior.count=stat.args$prior.count,start=stat.args$start,
-                    method=stat.args$method)
+                #fit <- glmFit(dge[,ms],design=design,offset=stat.args$offset,
+                #    weights=stat.args$weights,lib.size=stat.args$lib.size,
+                #    prior.count=stat.args$prior.count,start=stat.args$start,
+                #    method=stat.args$method)
+                fit <- glmFit(dge[,ms],design=design,start=stat.args$start,
+                    prior.count=stat.args$prior.count)
             else
-                fit <- glmFit(dge[,ms],design=design,offset=stat.args$offset,
-                    weights=stat.args$weights,lib.size=stat.args$lib.size,
-                    prior.count=stat.args$prior.count,start=stat.args$start,
-                    method=stat.args$method,dispersion=bcv^2)
-            lrt <- glmLRT(fit,coef=2:ncol(fit$design),test=stat.args$test)
-                res <- topTags(lrt,n=nrow(dge))
+                #fit <- glmFit(dge[,ms],design=design,offset=stat.args$offset,
+                #    weights=stat.args$weights,lib.size=stat.args$lib.size,
+                #    prior.count=stat.args$prior.count,start=stat.args$start,
+                #    method=stat.args$method,dispersion=bcv^2)
+                #    dispersion=bcv^2)
+                fit <- glmFit(dge[,ms],design=design,dispersion=bcv^2,
+                    prior.count=stat.args$prior.count,start=stat.args$start)
+                lrt <- glmLRT(fit,coef=2:ncol(fit$design),test=stat.args$test)
+                    res <- topTags(lrt,n=nrow(dge))
         }
         p[[con.name]] <- res$table[,"PValue"]
         names(p[[con.name]]) <- rownames(res$table)
