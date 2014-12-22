@@ -229,7 +229,7 @@ BUG FIXES
 
     o None 
     
-CHANGES IN VERSION 1.5.14 (2014-12-19)
+CHANGES IN VERSION 1.5.15 (2014-12-22)
 --------------------------------------
 
 NEW FEATURES
@@ -244,5 +244,8 @@ BUG FIXES
     o Fixed problem when input counts are a data.frame and count.type in exon,
     introduced during package upgrades. Thanks to Ben Elsworth, Garvan
     Institute of Medical Research, Austria.
+    o Replaced "==" with all.equal while checking if the sum of weights is one
+    when meta.p="weight". Of course this is the correct way to compare. Thanks 
+    to Ben Elsworth, Garvan Institute of Medical Research, Austria.
     o Fixed problem related to a bug in the current version of edgeR GLM and 
     the usage of ... in glmFit.
