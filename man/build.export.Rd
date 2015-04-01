@@ -11,7 +11,7 @@
         adj.sum.p = rep(NA, nrow(gene.data)),
         export.what = c("annotation", "p.value", "adj.p.value", "meta.p.value", 
                 "adj.meta.p.value", "fold.change", "stats", "counts","flags"),
-        export.scale = c("natural", "log2", "log10", "vst"),
+        export.scale = c("natural", "log2", "log10", "rpgm", "vst"),
         export.values = c("raw", "normalized"),
         export.stats = c("mean", "median", "sd", "mad", "cv", "rcv"),
         log.offset = 1, report = TRUE)

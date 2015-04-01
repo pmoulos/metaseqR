@@ -12,14 +12,15 @@
 check.main.args <- function(main.args) {
     in.args <- names(main.args)[-1] # 1st member name of calling function
     valid.args <- c(
-        "counts","sample.list","file.type","path","contrast","libsize.list",
-        "id.col","gc.col","name.col","bt.col","annotation","org","count.type",
-        "exon.filters","gene.filters","when.apply.filter","normalization",
-        "norm.args","statistics","stat.args","adjust.method","meta.p","weight",
-        "nperm","reprod","pcut","log.offset","preset","qc.plots","fig.format",
-        "out.list","export.where","export.what","export.scale","export.values",
-        "export.stats","export.counts.table","restrict.cores","report","refdb",
-        "report.top","report.template","verbose","run.log","save.gene.model"
+        "counts","sample.list","exclude.list","file.type","path","contrast",
+        "libsize.list","id.col","gc.col","name.col","bt.col","annotation","org",
+        "count.type","exon.filters","gene.filters","when.apply.filter",
+        "normalization","norm.args","statistics","stat.args","adjust.method",
+        "meta.p","weight","nperm","reprod","pcut","log.offset","preset",
+        "qc.plots","fig.format","out.list","export.where","export.what",
+        "export.scale","export.values","export.stats","export.counts.table",
+        "restrict.cores","report","refdb","report.top","report.template",
+        "verbose","run.log","save.gene.model"
     )
     invalid <- setdiff(in.args,valid.args)
     if (length(invalid) > 0) {

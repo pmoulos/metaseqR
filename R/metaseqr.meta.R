@@ -41,7 +41,7 @@
 #'}
 meta.test <- function(cp.list,meta.p=c("simes","bonferroni","fisher",
     "dperm.min","dperm.max","dperm.weight","fperm","whitlock","minp","maxp",
-    "weight","none"),counts,sample.list,statistics,stat.args,libsize.list,
+    "weight","pandora","none"),counts,sample.list,statistics,stat.args,libsize.list,
     nperm=10000,weight=rep(1/length(statistics),length(statistics)),
     reprod=TRUE,multic=FALSE) {
     check.text.args("meta.p",meta.p,c("simes","bonferroni","fisher","dperm.min",
@@ -49,6 +49,8 @@ meta.test <- function(cp.list,meta.p=c("simes","bonferroni","fisher",
         "none"))
     contrast <- names(cp.list)
     disp("Performing meta-analysis with ",meta.p)
+    if (meta.p=="pandora")
+        meta.p <- "weight"
     switch(meta.p,
         fisher = {
             sum.p.list <- wapply(multic,cp.list,function(x) {

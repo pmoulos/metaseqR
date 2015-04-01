@@ -2,8 +2,8 @@
 \alias{make.transformation}
 \title{Calculates several transformation of counts}
 \usage{
-    make.transformation(data.matrix, export.scale,
-        log.offset = 1)
+    make.transformation(data.matrix, export.scale, 
+        scf = NULL, log.offset = 1)
 }
 \arguments{
     \item{data.matrix}{the raw or normalized counts matrix.
@@ -13,6 +13,12 @@
     the supported data transformations (\code{"natural"},
     \code{"log2"}, \code{"log10"},\code{"vst"}). See also the
     main help page of metaseqr.}
+    
+    \item{scf}{a scaling factor for the reads of each gene, 
+    for example the sum of exon lengths or the gene length. 
+    Divided by each read count when \code{export.scale="rpgm"}. 
+    It provides an RPKM-like measure but not the actual RPKM 
+    as this normalization is not supported.}
 
     \item{log.offset}{a number to be added to each element of
     data.matrix in order to avoid Infinity on log type data

@@ -15,7 +15,7 @@
     same parameter in the main function. See also
     \code{\link{get.annotation}}.}
 
-	\item{file.type}{the type of raw input files. It can be
+    \item{file.type}{the type of raw input files. It can be
     \code{"bed"} for BED files or \code{"sam"}, \code{"bam"}
     for SAM/BAM files. See the same argument in the main
     \code{\link{metaseqr}} function for the case of
@@ -45,10 +45,8 @@
 \examples{
 \dontrun{
 my.targets <- read.targets("my_mm9_study_bam_files.txt")
-sample.list <- my.targets$samples
-file.list <- my.targets$files
 gene.data <- get.annotation("mm9","gene")
-r2c <- read2count(files.list=file.list,
+r2c <- read2count(targets=my.targets,
     file.type=my.targets$type,annotation=gene.data)
 gene.counts <- r2c$counts
 libsize.list <- r2s$libsize

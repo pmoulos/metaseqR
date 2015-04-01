@@ -3,7 +3,7 @@
 \alias{metaseqr.main}
 \title{The main metaseqr pipeline}
 \usage{
-    metaseqr(counts, sample.list,
+    metaseqr(counts, sample.list, exclude.list = NULL,
         file.type = c("auto", "sam", "bam", "bed"),
         path = NULL, contrast = NULL, libsize.list = NULL,
         id.col = 4, gc.col = NA, name.col = NA, bt.col = NA,
@@ -29,7 +29,7 @@
         adjust.method = sort(c(p.adjust.methods, "qvalue")),
         meta.p = if (length(statistics) > 1) c("simes", "bonferroni", "fisher", 
                 "dperm.min", "dperm.max", "dperm.weight", "fperm", "whitlock", 
-                "minp", "maxp", "weight", "none") else "none",
+                "minp", "maxp", "weight", "pandora", "none") else "none",
         weight = rep(1/length(statistics), length(statistics)),
         nperm = 10000, reprod=TRUE, pcut = NA, log.offset = 1,
         preset = NULL,
@@ -42,7 +42,7 @@
         export.what = c("annotation", "p.value", "adj.p.value", 
                 "meta.p.value", "adj.meta.p.value", "fold.change", 
                 "stats", "counts","flags"),
-        export.scale = c("natural", "log2", "log10", "vst"),
+        export.scale = c("natural", "log2", "log10", "vst", "rpgm"),
         export.values = c("raw", "normalized"),
         export.stats = c("mean", "median", "sd", "mad", "cv", 
                 "rcv"),
@@ -135,6 +135,9 @@
     provided (see below). The third column MUST contain the
     biological condition where each of the samples in the
     first column should belong to.}
+    
+    \item{exclude.list}{ a list of samples to exclude, in the 
+    same (list) format as \code{sample.list} above.}
 
     \item{path}{an optional path where all the BED/BAM files
     are placed, to be prepended to the BAM/BED file names in
@@ -313,12 +316,12 @@
     \strong{(experimental! see also the second note below,
     regarding meta-analysis)}. It can be one of \code{"simes"}
     (default), \code{"bonferroni"}, \code{"minp"}, 
-    \code{"maxp"}, \code{"weight"}, \code{"dperm.min"}, 
-    \code{"dperm.max"}, \code{"dperm.weight"}, \code{"fisher"},
-    \code{"fperm"}, \code{"whitlock"} or\code{"none"}. For the
-    \code{"fisher"} and \code{"fperm"} methods, see the 
-    documentation of the R package MADAM. For the 
-    \code{"whitlock"} method, see the documentation of the 
+    \code{"maxp"}, \code{"weight"}, \code{"pandora"}, 
+    \code{"dperm.min"}, \code{"dperm.max"}, \code{"dperm.weight"}, 
+    \code{"fisher"}, \code{"fperm"}, \code{"whitlock"} or 
+    \code{"none"}. For the \code{"fisher"} and \code{"fperm"} 
+    methods, see the documentation of the R package MADAM. For 
+    the \code{"whitlock"} method, see the documentation of the 
     survcomp Bioconductor package. With the \code{"maxp"} 
     option, the final p-value is the maximum p-value out of 
     those returned by each statistical test. This is 
@@ -363,7 +366,9 @@
     but without permutations. Generally, permutations 
     would be accurate to use when the experiment includes
     >5 samples per condition (or even better 7-10) which 
-    is rather rare in RNA-Seq experiments.}
+    is rather rare in RNA-Seq experiments. Finally, 
+    \code{"pandora"} is the same as \code{"weight"} and is
+    added to be in accordance with the metaseqR paper.}
 
     \item{weight}{a vector of weights with the same length as
     the \code{statistics} vector containing a weight for each
@@ -494,7 +499,14 @@
     transformations applied to the data. It can be one or
     more of \code{"natural"}, \code{"log2"}, \code{"log10"},
     \code{"vst"} (Variance Stabilizing Transormation, see the
-    documentation of DESeq package).}
+    documentation of DESeq package) and \code{"rpgm"} which
+	is ratio of mapped reads per gene model (either the gene
+	length or the sum of exon lengths, depending on 
+	\code{count.type} argument). Note that this is not RPKM
+	as reads are already normalized for library size using 
+	one of the supported normalization methods. Also, 
+	\code{"rpgm"} might be misleading when \code{normalization} 
+	is other than \code{"deseq"}.}
 
     \item{export.values}{It can be one or more of
     \code{"raw"} to export raw values (counts etc.) and

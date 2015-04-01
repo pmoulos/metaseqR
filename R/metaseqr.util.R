@@ -1,436 +1,3 @@
-#' SAM/BAM/BED file reader helper for the metaseqr pipeline
-#'
-#' This function is a helper for the \code{metaseqr} pipeline, for reading SAM/BAM
-#' or BED files when a read counts file is not available.
-#'
-#' @param targets a named list, the output of \code{\link{read.targets}}.
-#' @param file.type the type of raw input files. It can be \code{"bed"} for BED
-#' files or \code{"sam"}, \code{"bam"} for SAM/BAM files. See the same argument
-#' in the main \code{\link{metaseqr}} function for the case of auto-guessing.
-#' @param annotation see the \code{annotation} argument in the main
-#' \code{\link{metaseqr}} function. The \code{"annotation"} parameter here is the
-#' result of the same parameter in the main function. See also
-#' \code{\link{get.annotation}}.
-#' @param has.all.fields a logical variable indicating if all annotation fields
-#' used by \code{metaseqr} are available (that is apart from the main chromosome,
-#' start, end, unique id and strand columns, if also present are the gene name and
-#' biotype columns). The default is \code{FALSE}.
-#' @param multic a logical value indicating the presence of multiple cores. Defaults
-#' to \code{FALSE}. Do not change it if you are not sure whether package parallel
-#' has been loaded or not.
-#' @return A data frame with counts for each sample, ready to be passed to the
-#' main \code{\link{metaseqr}} pipeline.
-#' @author Panagiotis Moulos
-#' @export
-#' @examples
-#' \dontrun{
-#' my.targets <- read.targets("my_mm9_study_bam_files.txt")
-#' sample.list <- my.targets$samples
-#' file.list <- my.targets$files
-#' gene.data <- get.annotation("mm9","gene")
-#' r2c <- read2count(files.list=file.list,file.type=my.targets$type,
-#'   annotation=gene.data)
-#' gene.counts <- r2c$counts
-#' libsize.list <- r2s$libsize
-#'}
-read2count <- function(targets,annotation,file.type=targets$type,
-    has.all.fields=FALSE,multic=FALSE) {
-    if (missing(targets))
-        stopwrap("You must provide the targets argument!")
-    if (missing(annotation))
-        stopwrap("You must provide an annotation data frame!")
-    if (!require(GenomicRanges))
-        stopwrap("The Bioconductor package GenomicRanges is required to ",
-            "proceed!")
-    if (file.type=="bed" && !require(rtracklayer))
-        stopwrap("The Bioconductor package rtracklayer is required to process ",
-            "BED files!")
-    if (file.type %in% c("sam","bam")) {
-        if (!require(Rsamtools))
-            stopwrap("The Bioconductor package Rsamtools is required to ",
-                "process BAM files!")
-    }
-    if (!is.list(targets) && file.exists(targets))
-        targets <- read.targets(targets)
-    else if (!is.list(targets) && !file.exists(targets))
-        stopwrap("You must provide a targets list or a valid targets file!")
-    
-    # Convert annotation to GRanges
-    disp("Converting annotation to GenomicRanges object...")
-    if (packageVersion("GenomicRanges")<1.14) { # Classic way
-        if (has.all.fields)
-            annotation.gr <- GRanges(
-                seqnames=Rle(annotation[,1]),
-                ranges=IRanges(start=annotation[,2],end=annotation[,3]),
-                strand=Rle(annotation[,6]),
-                name=as.character(annotation[,4]),
-                symbol=as.character(annotation[,7]),
-                biotype=as.character(annotation[,8])
-            )
-        else
-            annotation.gr <- GRanges(
-                seqnames=Rle(annotation[,1]),
-                ranges=IRanges(start=annotation[,2],end=annotation[,3]),
-                strand=Rle(annotation[,6]),
-                name=as.character(annotation[,4])
-            )
-    }
-    else # Use native method in newer versions of GenomicRanges
-        annotation.gr <- makeGRangesFromDataFrame(
-            df=annotation,
-            keep.extra.columns=TRUE,
-            seqnames.field="chromosome"
-        )
-    # If the count type is "exon", we must reduce the overlapping exons belonging
-    # to multiple transcripts, so as to avoid inflating the final read count when
-    # summing all exons
-    if (length(grep("exon",colnames(annotation)))>0) {
-        if (length(grep("MEX",annotation$exon_id[1]))) # Retrieved from previous
-            merged.annotation <- annotation
-        else {
-            disp("Merging exons to create unique gene models...")
-            annotation.gr <- reduce.exons(annotation.gr,multic=multic)
-            #merged.annotation <- as.data.frame(annotation.gr) # Bug?
-            merged.annotation <- data.frame(
-                chromosome=as.character(seqnames(annotation.gr)),
-                start=start(annotation.gr),
-                end=end(annotation.gr),
-                exon_id=if (!is.null(annotation.gr$exon_id))
-                    as.character(annotation.gr$exon_id) else
-                    as.character(annotation.gr$name),
-                gene_id=if (!is.null(annotation.gr$gene_id))
-                    as.character(annotation.gr$gene_id) else
-                    as.character(annotation.gr$name),
-                strand=as.character(strand(annotation.gr)),
-                gene_name=if (!is.null(annotation.gr$gene_name))
-                    as.character(annotation.gr$gene_name) else 
-                    if (!is.null(annotation.gr$symbol))
-                    as.character(annotation.gr$name) else NULL,
-                biotype=if (!is.null(annotation.gr$biotype))
-                    as.character(annotation.gr$biotype) else NULL
-            )
-            rownames(merged.annotation) <- 
-                as.character(merged.annotation$exon_id)
-        }
-    }
-    else
-        merged.annotation <- NULL
-    # Continue
-    files.list <- targets$files
-    sample.names <- unlist(lapply(files.list,names),use.names=FALSE)
-    sample.files <- unlist(files.list,use.names=FALSE)
-    names(sample.files) <- sample.names
-    if (!is.null(targets$paired)) {
-        paired <- unlist(targets$paired,use.names=FALSE)
-        names(paired) <- sample.names
-    }
-    else
-        paired <- NULL
-    if (!is.null(targets$stranded)) {
-        stranded <- unlist(targets$stranded,use.names=FALSE)
-        names(stranded) <- sample.names
-    }
-    else
-        stranded <- NULL
-    counts <- matrix(0,nrow=length(annotation.gr),ncol=length(sample.names))
-    if (length(grep("exon",colnames(annotation)))>0)
-        rownames(counts) <- as.character(annotation.gr$exon_id)
-    else
-        rownames(counts) <- as.character(annotation.gr$gene_id)
-    colnames(counts) <- sample.names
-    libsize <- vector("list",length(sample.names))
-    names(libsize) <- sample.names
-    if (file.type=="bed") {
-        ret.val <- wapply(multic,sample.names,function(n,sample.files) {
-            disp("Reading bed file ",basename(sample.files[n]),
-                " for sample with name ",n,". This might take some time...")
-            bed <- import.bed(sample.files[n],trackLine=FALSE,
-                asRangedData=FALSE)
-            disp("  Checking for chromosomes not present in the annotation...")
-            bed <- bed[which(!is.na(match(as(seqnames(bed),"character"),
-                seqlevels(annotation.gr))))]
-            libsize <- length(bed)
-            if (length(bed)>0) {
-                disp("  Counting reads overlapping with given annotation...")
-                counts <- countOverlaps(annotation.gr,bed)
-            }
-            else
-                warnwrap(paste("No reads left after annotation chromosome ",
-                    "presence check for sample ",n,sep=""))
-            gc(verbose=FALSE)
-            return(list(counts=counts,libsize=libsize))
-        },sample.files)
-    }
-    else if (file.type %in% c("sam","bam")) {
-        if (file.type=="sam") {
-            for (n in sample.names) {
-                dest <- file.path(dirname(sample.files[n]),n)
-                disp("Converting sam file ",basename(sample.files[n]),
-                    " to bam file ",basename(dest),"...")
-                asBam(file=sample.files[n],destination=dest,overwrite=TRUE)
-                sample.files[n] <- paste(dest,"bam",sep=".")
-            }
-        }
-        ret.val <- wapply(multic,sample.names,function(n,sample.files,paired,
-            stranded) {
-            disp("Reading bam file ",basename(sample.files[n])," for sample ",
-                "with name ",n,". This might take some time...")
-            bam <- BamFile(sample.files[n])
-            libsize <- countBam(bam)$records
-            if (!is.null(paired)) {
-                p <- tolower(paired[n])
-                if (p=="single")
-                    singleEnd <- TRUE
-                else if (p=="paired")
-                    singleEnd <- FALSE
-                else {
-                    warnwrap("Information regarding single- or paired-end ",
-                        "reads is not correctly provided! Assuming single...")
-                    singleEnd <- TRUE
-                }
-            }
-            else
-                singleEnd <- TRUE
-            if (!is.null(stranded)) {
-                s <- tolower(stranded[n])
-                if (s=="yes")
-                    ignore.strand <- FALSE
-                else if (s=="no")
-                    ignore.strand <- TRUE
-                else {
-                    warnwrap("Information regarding strandedness of the reads ",
-                        "is not correctly provided! Assuming unstranded...")
-                    ignore.strand <- TRUE
-                }
-            }
-            else
-                ignore.strand <- TRUE
-            if (libsize>0) {
-                disp("  Counting reads overlapping with given annotation...")
-                if (singleEnd)
-                    disp("    ...for single-end reads...")
-                else
-                    disp("    ...for paired-end reads...")
-                if (ignore.strand)
-                    disp("    ...ignoring strandedness...")
-                else
-                    disp("    ...using strandedness...")
-                counts <- summarizeOverlaps(annotation.gr,bam,
-                    singleEnd=singleEnd,ignore.strand=ignore.strand)
-                counts <- assays(counts)$counts
-            }
-            else
-                warnwrap(paste("No reads left after annotation chromosome ",
-                    "presence check for sample ",n,sep=""))
-            gc(verbose=FALSE)
-            return(list(counts=counts,libsize=libsize))
-        },sample.files,paired,stranded)
-    }
-    for (i in 1:length(ret.val)) {
-        counts[,i] <- ret.val[[i]]$counts
-        libsize[[i]] <- ret.val[[i]]$libsize
-    }
-    
-    return(list(counts=counts,libsize=libsize,mergedann=merged.annotation))
-}
-
-#' Merges exons to create a unique set of exons for each gene
-#'
-#' This function uses the \code{"reduce"} function of IRanges to construct virtual
-#' unique exons for each gene, so as to avoid inflating the read counts for each
-#' gene because of multiple possible transcripts. If the user wants transcripts
-#' instead of genes, they should be supplied to the original annotation table.
-#'
-#' @param gr a GRanges object created from the supplied annotation (see also the
-#' \code{\link{read2count}} and \code{\link{get.annotation}} functions.
-#' @param multic a logical value indicating the presence of multiple cores. Defaults
-#' to \code{FALSE}. Do not change it if you are not sure whether package parallel
-#' has been loaded or not.
-#' @return A GRanges object with virtual merged exons for each gene/transcript.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' require(GenomicRanges)
-#' ann <- get.annotation("mm9","exon")
-#' gr <- makeGRangesFromDataFrame(
-#'  df=ann,
-#'  keep.extra.columns=TRUE,
-#'  seqnames.field="chromosome"
-#' )
-#' re <- reduce.exons(gr)
-#'}
-reduce.exons <- function(gr,multic=FALSE) {
-    gene <- unique(as.character(gr$gene_id))
-    if (!is.null(gr$gene_name))
-        gn <- gr$gene_name
-    else
-        gn <- NULL
-    if (!is.null(gr$biotype))
-        bt <- gr$biotype   
-    else
-        bt <- NULL
-    red.list <- wapply(multic,gene,function(x,a,g,b) {
-        tmp <- a[a$gene_id==x]
-        if (!is.null(g))
-            gena <- as.character(tmp$gene_name[1])
-        if (!is.null(b))
-            btty <- as.character(tmp$biotype[1])
-        merged <- reduce(tmp)
-        n <- length(merged)
-        meta <- DataFrame(
-            exon_id=paste(x,"MEX",1:n,sep="_"),
-            gene_id=rep(x,n)
-        )
-        if (!is.null(g))
-            meta$gene_name <- rep(gena,n)
-        if (!is.null(b))
-            meta$biotype <- rep(btty,n)
-        mcols(merged) <- meta
-        return(merged)
-    },gr,gn,bt)
-    return(do.call("c",red.list))
-}
-
-#' Creates sample list and BAM/BED file list from file
-#'
-#' Create the main sample list and determine the BAM/BED files for each sample
-#' from an external file.
-#'
-#' @param input a tab-delimited file structured as follows: the first line of the
-#' external tab delimited file should contain column names (names are not important).
-#' The first column MUST contain UNIQUE sample names. The second column MUST contain
-#' the raw BAM/BED files WITH their full path. Alternatively, the \code{path}
-#' argument should be provided (see below). The third column MUST contain the
-#' biological condition where each of the samples in the first column should belong
-#' to.
-#' @param path an optional path where all the BED/BAM files are placed, to be
-#' prepended to the BAM/BED file names in the targets file.
-#' @return A named list with three members. The first member is a named list whose
-#' names are the conditions of the experiments and its members are the samples
-#' belonging to each condition. The second member is like the first, but this time
-#' the members are named vectors whose names are the sample names and the vector
-#' elements are full path to BAM/BED files. The third member is the guessed type
-#' of the input files (BAM or BED). It will be used if not given in the main
-#' \code{\link{read2count}} function.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' targets <- data.frame(sample=c("C1","C2","T1","T2"),
-#'   filename=c("C1_raw.bam","C2_raw.bam","T1_raw.bam","T2_raw.bam"),
-#'   condition=c("Control","Control","Treatment","Treatment"))
-#' path <- "/home/chakotay/bam"
-#' write.table(targets,file="targets.txt",sep="\t",row.names=F,quote="")
-#' the.list <- read.targets("targets.txt",path=path)
-#' sample.list <- the.list$samples
-#' bamfile.list <- the.list$files
-#'}
-read.targets <- function(input,path=NULL) {
-    if (missing(input) || !file.exists(input))
-        stopwrap("The targets file should be a valid existing text file!")
-    tab <- read.delim(input,strip.white=TRUE)
-    samples <- as.character(tab[,1])
-    conditions <- unique(as.character(tab[,3]))
-    rawfiles <- as.character(tab[,2])
-    if (!is.null(path)) {
-        tmp <- dirname(rawfiles) # Test if there is already a path
-        if (any(tmp=="."))
-            rawfiles <- file.path(path,basename(rawfiles))
-    }
-    if (length(samples) != length(unique(samples)))
-        stopwrap("Sample names must be unique for each sample!")
-    if (length(rawfiles) != length(unique(rawfiles)))
-        stopwrap("File names must be unique for each sample!")
-    sample.list <- vector("list",length(conditions))
-    names(sample.list) <- conditions
-    for (n in conditions)
-        sample.list[[n]] <- samples[which(as.character(tab[,3])==n)]
-    file.list <- vector("list",length(conditions))
-    names(file.list) <- conditions
-    for (n in conditions) {
-        file.list[[n]] <- rawfiles[which(as.character(tab[,3])==n)]
-        names(file.list[[n]]) <- samples[which(as.character(tab[,3])==n)]
-    }
-    if (ncol(tab)>3) { # Has info about single- or paired-end reads / strand
-        if (ncol(tab)==4) { # Stranded or paired
-            what <- tolower(as.character(tab[1,4]))
-            if (what %in% c("single","paired")) {
-                has.paired.info <- TRUE
-                has.stranded.info <- FALSE
-            }
-            else if (what %in% c("yes","no")) {
-                has.paired.info <- FALSE
-                has.stranded.info <- TRUE
-            }
-        }
-        if (ncol(tab)==5) { # Both
-            has.paired.info <- TRUE
-            has.stranded.info <- TRUE
-        }
-        if (has.paired.info && !has.stranded.info) {
-            paired.list <- vector("list",length(conditions))
-            names(paired.list) <- conditions
-            for (n in conditions) {
-                paired.list[[n]] <- character(length(sample.list[[n]]))
-                names(paired.list[[n]]) <- sample.list[[n]]
-                for (nn in names(paired.list[[n]]))
-                    paired.list[[n]][nn] <- as.character(tab[which(as.character(
-                        tab[,1])==nn),4])
-            }
-        }
-        else
-            paired.list <- NULL
-        if (has.stranded.info && !has.paired.info) {
-            stranded.list <- vector("list",length(conditions))
-            names(stranded.list) <- conditions
-            for (n in conditions) {
-                stranded.list[[n]] <- character(length(sample.list[[n]]))
-                names(stranded.list[[n]]) <- sample.list[[n]]
-                for (nn in names(stranded.list[[n]]))
-                    stranded.list[[n]][nn] <- as.character(tab[which(as.character(
-                        tab[,1])==nn),4])
-            }
-        }
-        else
-            stranded.list <- NULL
-        if (has.stranded.info && has.paired.info) {
-            stranded.list <- vector("list",length(conditions))
-            names(stranded.list) <- conditions
-            for (n in conditions) {
-                stranded.list[[n]] <- character(length(sample.list[[n]]))
-                names(stranded.list[[n]]) <- sample.list[[n]]
-                for (nn in names(stranded.list[[n]]))
-                    stranded.list[[n]][nn] <- as.character(tab[which(as.character(
-                        tab[,1])==nn),5])
-            }
-            paired.list <- vector("list",length(conditions))
-            names(paired.list) <- conditions
-            for (n in conditions) {
-                paired.list[[n]] <- character(length(sample.list[[n]]))
-                names(paired.list[[n]]) <- sample.list[[n]]
-                for (nn in names(paired.list[[n]]))
-                    paired.list[[n]][nn] <- as.character(tab[which(as.character(
-                        tab[,1])==nn),4])
-            }
-        }
-    }
-    else
-        paired.list <- stranded.list <- NULL
-    # Guess file type based on only one of them
-    tmp <- file.list[[1]][1]
-    if (length(grep("\\.bam$",tmp,ignore.case=TRUE,perl=TRUE))>0)
-        type <- "bam"
-    else if (length(grep("\\.sam$",tmp,ignore.case=TRUE,perl=TRUE))>0)
-        type <- "sam"
-    else if (length(grep("\\.bed$",tmp,ignore.case=TRUE,perl=TRUE)>0))
-        type <- "bed"
-    else
-        type <- NULL
-    return(list(samples=sample.list,files=file.list,paired=paired.list,
-        stranded=stranded.list,type=type))
-}
-
 #' Get precalculated statistical test weights
 #'
 #' This function returns pre-calculated weights for human, chimpanzee, mouse,
@@ -1366,717 +933,6 @@ validate.list.args <- function(what,method=NULL,arg.list) {
     )
 }
 
-#' Annotation downloader
-#'
-#' This function connects to the EBI's Biomart service using the package biomaRt
-#' and downloads annotation elements (gene co-ordinates, exon co-ordinates, gene
-#' identifications, biotypes etc.) for each of the supported organisms. See the
-#' help page of \code{\link{metaseqr}} for a list of supported organisms. The
-#' function downloads annotation for an organism genes or exons.
-#'
-#' @param org the organism for which to download annotation.
-#' @param type either \code{"gene"} or \code{"exon"}.
-#' @param refdb the online source to use to fetch annotation. It can be
-#' \code{"ensembl"} (default), \code{"ucsc"} or \code{"refseq"}. In the later two
-#' cases, an SQL connection is opened with the UCSC public databases.
-#' @param multic a logical value indicating the presence of multiple cores. Defaults
-#' to \code{FALSE}. Do not change it if you are not sure whether package parallel
-#' has been loaded or not. It is used in the case of \code{type="exon"} to process
-#' the return value of the query to the UCSC Genome Browser database.
-#' @return A data frame with the canonical (not isoforms!) genes or exons of the
-#' requested organism. When \code{type="genes"}, the data frame has the following
-#' columns: chromosome, start, end, gene_id, gc_content, strand, gene_name, biotype.
-#' When \code{type="exon"} the data frame has the following columns: chromosome,
-#' start, end, exon_id, gene_id, strand, gene_name, biotype. The gene_id and exon_id
-#' correspond to Ensembl gene and exon accessions respectively. The gene_name
-#' corresponds to HUGO nomenclature gene names.
-#' @note The data frame that is returned contains only "canonical" chromosomes
-#' for each organism. It does not contain haplotypes or random locations and does
-#' not contain chromosome M.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' hg19.genes <- get.annotation("hg19","gene","ensembl")
-#' mm9.exons <- get.annotation("mm9","exon","ucsc")
-#'}
-get.annotation <- function(org,type,refdb="ensembl",multic=FALSE) {
-    switch(refdb,
-        ensembl = { return(get.ensembl.annotation(org,type)) },
-        ucsc = { return(get.ucsc.annotation(org,type,refdb,multic)) },
-        refseq = { return(get.ucsc.annotation(org,type,refdb,multic)) }
-    )
-}
-
-#' Ensembl annotation downloader
-#'
-#' This function connects to the EBI's Biomart service using the package biomaRt
-#' and downloads annotation elements (gene co-ordinates, exon co-ordinates, gene
-#' identifications, biotypes etc.) for each of the supported organisms. See the
-#' help page of \code{\link{metaseqr}} for a list of supported organisms. The
-#' function downloads annotation for an organism genes or exons.
-#'
-#' @param org the organism for which to download annotation.
-#' @param type either \code{"gene"} or \code{"exon"}.
-#' @return A data frame with the canonical (not isoforms!) genes or exons of the
-#' requested organism. When \code{type="genes"}, the data frame has the following
-#' columns: chromosome, start, end, gene_id, gc_content, strand, gene_name, biotype.
-#' When \code{type="exon"} the data frame has the following columns: chromosome,
-#' start, end, exon_id, gene_id, strand, gene_name, biotype. The gene_id and exon_id
-#' correspond to Ensembl gene and exon accessions respectively. The gene_name
-#' corresponds to HUGO nomenclature gene names.
-#' @note The data frame that is returned contains only "canonical" chromosomes
-#' for each organism. It does not contain haplotypes or random locations and does
-#' not contain chromosome M.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' hg19.genes <- get.ensembl.annotation("hg19","gene")
-#' mm9.exons <- get.ensembl.annotation("mm9","exon")
-#'}
-get.ensembl.annotation <- function(org,type) {
-    if (org!="tair10")
-        dat <- "ENSEMBL_MART_ENSEMBL"
-    else
-        dat <- "ENSEMBL_MART_PLANT"
-    mart <- tryCatch({
-            useMart(biomart=dat,host=get.host(org),dataset=get.dataset(org))
-        },
-        error=function(e) {
-            useMart(biomart=dat,host=get.alt.host(org),
-            dataset=get.dataset(org))
-        },
-        finally={})
-    chrs.exp <- paste(get.valid.chrs(org),collapse="|")
-    if (type=="gene") {
-        bm <- getBM(attributes=get.gene.attributes(org),mart=mart)
-        ann <- data.frame(
-            chromosome=paste("chr",bm$chromosome_name,sep=""),
-            start=bm$start_position,
-            end=bm$end_position,
-            gene_id=bm$ensembl_gene_id,
-            gc_content=bm$percentage_gc_content,
-            strand=ifelse(bm$strand==1,"+","-"),
-            gene_name=if (org %in% c("hg18","mm9")) bm$external_gene_id 
-                else bm$external_gene_name,
-            biotype=bm$gene_biotype
-        )
-        rownames(ann) <- ann$gene_id
-    }
-    else if (type=="exon") {
-        bm <- getBM(attributes=get.exon.attributes(org),mart=mart)
-        if (org == "hg19") {
-            disp("  Bypassing problem with hg19 Ensembl combined gene-exon",
-                "annotation... Will take slightly longer...")
-            bmg <- getBM(attributes=get.gene.attributes(org),mart=mart)
-            gene_name <- bmg$external_gene_name
-            names(gene_name) <- bmg$ensembl_gene_id
-            ann <- data.frame(
-                chromosome=paste("chr",bm$chromosome_name,sep=""),
-                start=bm$exon_chrom_start,
-                end=bm$exon_chrom_end,
-                exon_id=bm$ensembl_exon_id,
-                gene_id=bm$ensembl_gene_id,
-                strand=ifelse(bm$strand==1,"+","-"),
-                gene_name=gene_name[bm$ensembl_gene_id],
-                biotype=bm$gene_biotype
-            )
-            rownames(ann) <- ann$exon_id
-        }
-        else
-            ann <- data.frame(
-                chromosome=paste("chr",bm$chromosome_name,sep=""),
-                start=bm$exon_chrom_start,
-                end=bm$exon_chrom_end,
-                exon_id=bm$ensembl_exon_id,
-                gene_id=bm$ensembl_gene_id,
-                strand=ifelse(bm$strand==1,"+","-"),
-                gene_name=if (org %in% c("hg18","mm9")) bm$external_gene_id 
-                    else bm$external_gene_name,
-                biotype=bm$gene_biotype
-            )
-            rownames(ann) <- ann$exon_id
-    }
-    ann <- ann[order(ann$chromosome,ann$start),]
-    ann <- ann[grep(chrs.exp,ann$chromosome),]
-    ann$chromosome <- as.character(ann$chromosome)
-    return(ann)
-}
-
-#' UCSC/RefSeq annotation downloader
-#'
-#' This function connects to the UCSC Genome Browser public database and downloads
-#' annotation elements (gene co-ordinates, exon co-ordinates, gene identifications
-#' etc.) for each of the supported organisms, but using UCSC instead of Ensembl.
-#' See the help page of \code{\link{metaseqr}} for a list of supported organisms.
-#' The function downloads annotation for an organism genes or exons.
-#'
-#' @param org the organism for which to download annotation.
-#' @param type either \code{"gene"} or \code{"exon"}.
-#' @param refdb either \code{"ucsc"} or \code{"refseq"}.
-#' @param multic a logical value indicating the presence of multiple cores. Defaults
-#' to \code{FALSE}. Do not change it if you are not sure whether package parallel
-#' has been loaded or not. It is used in the case of \code{type="exon"} to process
-#' the return value of the query to the UCSC Genome Browser database.
-#' @return A data frame with the canonical (not isoforms!) genes or exons of the
-#' requested organism. When \code{type="genes"}, the data frame has the following
-#' columns: chromosome, start, end, gene_id, gc_content, strand, gene_name, biotype.
-#' When \code{type="exon"} the data frame has the following columns: chromosome,
-#' start, end, exon_id, gene_id, strand, gene_name, biotype. The gene_id and exon_id
-#' correspond to UCSC or RefSeq gene and exon accessions respectively. The gene_name
-#' corresponds to HUGO nomenclature gene names.
-#' @note The data frame that is returned contains only "canonical" chromosomes
-#' for each organism. It does not contain haplotypes or random locations and does
-#' not contain chromosome M. Note also that as the UCSC databases do not contain
-#' biotype classification like Ensembl, this will be returned as \code{NA} and
-#' as a result, some quality control plots will not be available.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' hg19.genes <- get.ucsc.annotation("hg19","gene","ucsc")
-#' mm9.exons <- get.ucsc.annotation("mm9","exon")
-#'}
-get.ucsc.annotation <- function(org,type,refdb="ucsc",multic=FALSE) {
-    if (!require(RMySQL)) {
-        rmysql.present <- FALSE
-        warnwrap("R package RMySQL is not present! Annotation will be ",
-            "retrieved by downloading temporary files from UCSC and the usage
-            of a temporary SQLite database...")
-    }
-    else
-        rmysql.present <- TRUE
-    if (!require(RSQLite))
-        stopwrap("R package RSQLite is required to use annotation from UCSC!")
-
-    if (org=="tair10") {
-        warnwrap("Arabidopsis thaliana genome is not supported by UCSC Genome ",
-            "Browser database! Switching to Ensembl...")
-        return(get.ensembl.annotation("tair10",type))
-    }
-
-    valid.chrs <- get.valid.chrs(org)
-    chrs.exp <- paste("^",paste(valid.chrs,collapse="$|^"),"$",sep="")
-
-    db.org <- get.ucsc.organism(org)
-    if (rmysql.present) {
-        db.creds <- get.ucsc.credentials()
-        drv <- dbDriver("MySQL")
-        con <- dbConnect(drv,user=db.creds[2],password=NULL,dbname=db.org,
-            host=db.creds[1])
-        query <- get.ucsc.query(org,type,refdb)
-        raw.ann <- dbGetQuery(con,query)
-        dbDisconnect(con)
-    }
-    else {
-        # This should return the same data frame as the db query
-        tmp.sqlite <- get.ucsc.dbl(org,type,refdb)
-        drv <- dbDriver("SQLite")
-        con <- dbConnect(drv,dbname=tmp.sqlite)
-        query <- get.ucsc.query(org,type,refdb)
-        raw.ann <- dbGetQuery(con,query)
-        dbDisconnect(con)
-    }
-    if (type=="gene") {
-        ann <- raw.ann
-        ann <- ann[grep(chrs.exp,ann$chromosome,perl=TRUE),]
-        ann$chromosome <- as.character(ann$chromosome)
-        rownames(ann) <- ann$gene_id
-    }
-    else if (type=="exon") {
-        raw.ann <- raw.ann[grep(chrs.exp,raw.ann$chromosome,perl=TRUE),]
-        ex.list <- wapply(multic,as.list(1:nrow(raw.ann)),function(x,d,s) {
-            r <- d[x,]
-            starts <- as.numeric(strsplit(r[,"start"],",")[[1]])
-            ends <- as.numeric(strsplit(r[,"end"],",")[[1]])
-            nexons <- length(starts)
-            ret <- data.frame(
-                rep(r[,"chromosome"],nexons),
-                starts,ends,
-                paste(r[,"exon_id"],"_e",1:nexons,sep=""),
-                rep(r[,"strand"],nexons),
-                rep(r[,"gene_id"],nexons),
-                rep(r[,"gene_name"],nexons),
-                rep(r[,"biotype"],nexons)
-            )
-            names(ret) <- names(r)
-            rownames(ret) <- ret$exon_id
-            ret <- makeGRangesFromDataFrame(
-                df=ret,
-                keep.extra.columns=TRUE,
-                seqnames.field="chromosome",
-                seqinfo=s
-            )
-            return(ret)
-        },raw.ann,valid.chrs)
-        tmp.ann <- do.call("c",ex.list)
-        ann <- data.frame(
-            chromosome=as.character(seqnames(tmp.ann)),
-            start=start(tmp.ann),
-            end=end(tmp.ann),
-            exon_id=as.character(tmp.ann$exon_id),
-            gene_id=as.character(tmp.ann$gene_id),
-            strand=as.character(strand(tmp.ann)),
-            gene_name=as.character(tmp.ann$gene_name),
-            biotype=tmp.ann$biotype
-        )
-        rownames(ann) <- ann$exon_id
-    }
-    
-    gc.content <- get.gc.content(ann,org)
-    ann$gc_content <- gc.content
-    ann <- ann[order(ann$chromosome,ann$start),]
-    return(ann)
-}
-
-#' Return a named vector of GC-content for each genomic region
-#'
-#' Returns a named numeric vector (names are the genomic region names, e.g. genes)
-#' given a data frame which can be converted to a GRanges object (e.g. it has at
-#' least chromosome, start, end fields). This function works best when the input
-#' annotation data frame has been retrieved using one of the SQL queries generated
-#' from \code{\link{get.ucsc.query}}, used in \code{\link{get.ucsc.annotation}}.
-#'
-#' @param ann a data frame which can be converted to a GRanges object, that means
-#' it has at least the chromosome, start, end fields. Preferably, the output of
-#' \code{link{get.ucsc.annotation}}.
-#' @param org one of metaseqR supported organisms.
-#' @return A named numeric vector.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' ann <- get.ucsc.annotation("mm9","gene","ucsc")
-#' gc <- get.gc.content(ann,"mm9")
-#'}
-get.gc.content <- function(ann,org) {
-    if (missing(ann))
-        stopwrap("A valid annotation data frame must be provided in order to ",
-            "retrieve GC-content.")
-    org <- tolower(org[1])
-    check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
-    # Convert annotation to GRanges
-    disp("Converting annotation to GenomicRanges object...")
-    if (packageVersion("GenomicRanges")<1.14)
-        ann.gr <- GRanges(
-            seqnames=Rle(ann[,1]),
-            ranges=IRanges(start=ann[,2],end=ann[,3]),
-            strand=Rle(ann[,6]),
-            name=as.character(ann[,4])
-        )
-    else
-        ann.gr <- makeGRangesFromDataFrame(
-            df=ann,
-            keep.extra.columns=TRUE,
-            seqnames.field="chromosome"
-        )
-    bsg <- load.bs.genome(org)
-    disp("Getting DNA sequences...")
-    seqs <- getSeq(bsg,names=ann.gr)
-    disp("Getting GC content...")
-    freq.matrix <- alphabetFrequency(seqs,as.prob=TRUE,baseOnly=TRUE)
-    gc.content <- apply(freq.matrix,1,function(x) round(100*sum(x[2:3]),
-        digits=2))
-    names(gc.content) <- as.character(ann[,4])
-    return(gc.content)
-}
-
-#' Return a proper formatted organism alias
-#'
-#' Returns the proper UCSC Genome Browser database organism alias based on what is
-#' given to metaseqR. Internal use.
-#'
-#' @return A proper organism alias.
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' org <- get.ucsc.organism("danrer7")
-#'}
-get.ucsc.organism <- function(org) {
-    switch(org,
-        hg18 = { return("hg18") },
-        hg19 = { return("hg19") },
-        hg38 = { return("hg38") },
-        mm9 = { return("mm9") },
-        mm10 = { return("mm10") },
-        rn5 = { return("rn5") },
-        dm3 = { return("dm3") },
-        danrer7 = { return("danRer7") },
-        pantro4 = { return("panTro4") },
-        susscr3 = { return("susScr3") },
-        tair10 = { return("TAIR10") }
-    )
-}
-
-#' Return a proper formatted BSgenome organism name
-#'
-#' Returns a properly formatted BSgenome package name according to metaseqR's
-#' supported organism. Internal use.
-#'
-#' @return A proper BSgenome package name.
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' bs.name <- get.bs.organism("hg18")
-#'}
-get.bs.organism <- function(org) {
-    switch(org,
-        hg18 = {
-            return("BSgenome.Hsapiens.UCSC.hg18")
-        },
-        hg19 = {
-            return("BSgenome.Hsapiens.UCSC.hg19")
-        },
-        hg38 = {
-            return("BSgenome.Hsapiens.UCSC.hg38") # Will throw error but correct
-        },
-        mm9 = {
-            return("BSgenome.Mmusculus.UCSC.mm9")
-        },
-        mm10 = {
-            return("BSgenome.Mmusculus.UCSC.mm10")
-        },
-        rn5 = {
-            return("BSgenome.Rnorvegicus.UCSC.rn5")
-        },
-        dm3 = {
-            return("BSgenome.Dmelanogaster.UCSC.dm3")
-        },
-        danrer7 = {
-            return("BSgenome.Drerio.UCSC.danRer7")
-        },
-        pantro4 = {
-            stopwrap("panTro4 is not yet supported by BSgenome! Please use ",
-                "Ensembl as annoation source.")
-        },
-        susscr3 = {
-            return("BSgenome.Sscrofa.UCSC.susScr3")
-        },
-        tair10 = {
-            stopwrap("TAIR10 is not yet supported by BSgenome! Please use ",
-                "Ensembl as annoation source.")
-        }
-    )
-}
-
-#' Loads (or downloads) the required BSGenome package
-#'
-#' Retrieves the required BSgenome package when the annotation source is \code{"ucsc"}
-#' or \code{"refseq"}. These packages are required in order to estimate the
-#' GC-content of the retrieved genes from UCSC or RefSeq.
-#'
-#' @param org one of \code{\link{metaseqr}} supported organisms.
-#' @return The BSgenome object for the requested organism.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' bs.obj <- load.bs.genome("mm9")
-#'}
-load.bs.genome <- function(org) {
-    if (!require(BiocInstaller))
-        stopwrap("The Bioconductor package BiocInstaller is required to ",
-            "proceed!")
-    if (!require(BSgenome))
-        stopwrap("The Bioconductor package BSgenome is required to ",
-            "proceed!")
-    bs.org <- get.bs.organism(org)
-    if (bs.org %in% installed.genomes())
-        bs.obj <- getBSgenome(get.ucsc.organism(org))
-    else {
-        biocLite(bs.org)
-        bs.obj <- getBSgenome(get.ucsc.organism(org))
-    }
-    return(bs.obj)
-}
-
-#' Biotype converter
-#'
-#' Returns biotypes as character vector. Internal use.
-#'
-#' @param a the annotation data frame (output of \code{\link{get.annotation}}).
-#' @return A character vector of biotypes.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' hg18.genes <- get.annotation("hg18","gene")
-#' hg18.bt <- get.biotypes(hg18.genes)
-#'}
-get.biotypes <- function(a) {
-    return(as.character(unique(a$biotype)))
-}
-
-#' Annotation downloader helper
-#'
-#' Returns the appropriate Ensembl host address to get different versions of
-#' annotation from. Internal use.
-#'
-#' @param org the organism for which to return the host address.
-#' @return A string with the host address.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' mm9.host <- get.host("mm9")
-#'}
-get.host <- function(org) {
-    switch(org,
-        hg18 = { return("may2009.archive.ensembl.org") },
-        hg19 = { return("grch37.ensembl.org") },
-        hg38 = { return("www.ensembl.org") },
-        mm9 = { return("may2012.archive.ensembl.org") },
-        mm10 = { return("www.ensembl.org") },
-        rn5 = { return("www.ensembl.org") },
-        dm3 = { return("www.ensembl.org") },
-        danrer7 = { return("www.ensembl.org") },
-        pantro4 = { return("www.ensembl.org") },
-        susscr3 = { return("www.ensembl.org") },
-        tair10 = { return("www.ensembl.org") }
-    )
-}
-
-#' Annotation downloader helper
-#'
-#' Returns the appropriate Ensembl host address to get different versions of
-#' annotation from (alternative hosts). Internal use.
-#'
-#' @param org the organism for which to return the host address.
-#' @return A string with the host address.
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' mm9.host <- get.alt.host("mm9")
-#'}
-get.alt.host <- function(org) {
-    switch(org,
-        hg18 = { return("may2009.archive.ensembl.org") },
-        hg19 = { return("grch37.ensembl.org") },
-        hg38 = { return("uswest.ensembl.org") },
-        mm9 = { return("may2012.archive.ensembl.org") },
-        mm10 = { return("uswest.ensembl.org") },
-        rn5 = { return("uswest.ensembl.org") },
-        dm3 = { return("uswest.ensembl.org") },
-        danrer7 = { return("uswest.ensembl.org") },
-        pantro4 = { return("uswest.ensembl.org") },
-        susscr3 = { return("uswest.ensembl.org") },
-        tair10 = { return("uswest.ensembl.org") }
-    )
-}
-
-#' Annotation downloader helper
-#'
-#' Returns a dataset (gene or exon) identifier for each organism recognized by
-#' the Biomart service for Ensembl. Internal use.
-#'
-#' @param org the organism for which to return the identifier.
-#' @return A string with the dataset identifier.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' dm3.id <- get.dataset("dm3")
-#'}
-get.dataset <- function(org) {
-    switch(org,
-        hg18 = { return("hsapiens_gene_ensembl") },
-        hg19 = { return("hsapiens_gene_ensembl") },
-        hg38 = { return("hsapiens_gene_ensembl") },
-        mm9 = { return("mmusculus_gene_ensembl") },
-        mm10 = { return("mmusculus_gene_ensembl") },
-        rn5 = { return("rnorvegicus_gene_ensembl") },
-        dm3 = { return("dmelanogaster_gene_ensembl") },
-        danrer7 = { return("drerio_gene_ensembl") },
-        pantro4 = { return("ptroglodytes_gene_ensembl") },
-        susscr3 = { return("sscrofa_gene_ensembl") },
-        tair10 = { return("athaliana_eg_gene") }
-    )
-}
-
-#' Annotation downloader helper
-#'
-#' Returns a vector of chromosomes to maintain after annotation download. Internal
-#' use.
-#'
-#' @param org the organism for which to return the chromosomes. 
-#' @return A character vector of chromosomes.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' hg18.chr <- get.valid.chrs("hg18")
-#'}
-get.valid.chrs <- function(org)
-{
-    switch(org,
-        hg18 = {
-            return(c(
-                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
-                "chr17","chr18","chr19","chr2","chr20","chr21","chr22","chr3",
-                "chr4","chr5","chr6","chr7","chr8","chr9","chrX","chrY"
-            ))
-        },
-        hg19 = {
-            return(c(
-                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
-                "chr17","chr18","chr19","chr2","chr20","chr21","chr22","chr3",
-                "chr4","chr5","chr6","chr7","chr8","chr9","chrX","chrY"
-            ))
-        },
-        hg38 = {
-            return(c(
-                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
-                "chr17","chr18","chr19","chr2","chr20","chr21","chr22","chr3",
-                "chr4","chr5","chr6","chr7","chr8","chr9","chrX","chrY"
-            ))
-        },
-        mm9 = {
-            return(c(
-                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
-                "chr17","chr18","chr19","chr2","chr3","chr4","chr5","chr6",
-                "chr7","chr8","chr9","chrX","chrY"
-            ))
-        },
-        mm10 = {
-            return(c(
-                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
-                "chr17","chr18","chr19","chr2","chr3","chr4","chr5","chr6",
-                "chr7","chr8","chr9","chrX","chrY"
-            ))
-        },
-        rn5 = {
-            return(c(
-                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
-                "chr17","chr18","chr19","chr2","chr3","chr4","chr5","chr6",
-                "chr7","chr8","chr9","chrX"
-            ))
-        },
-        dm3 = {
-            return(c(
-                "chr2L","chr2LHet","chr2R","chr2RHet","chr3L","chr3LHet",
-                "chr3R","chr3RHet","chr4","chrU","chrUextra","chrX","chrXHet",
-                "chrYHet"
-            ))
-        },
-        danrer7 = {
-            return(c(
-                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
-                "chr17","chr18","chr19","chr2","chr20","chr21","chr22","chr23",
-                "chr24","chr25","chr3","chr4","chr5","chr6","chr7","chr8","chr9"
-            ))
-        },
-        pantro4 = {
-            return(c(
-                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
-                "chr17","chr18","chr19","chr20","chr21","chr22","chr2A","chr2B",
-                "chr3","chr4","chr5","chr6","chr7","chr8","chr9","chrX","chrY"
-            ))
-        },
-        susscr3 = {
-            return(c(
-                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
-                "chr17","chr18","chr2","chr3","chr4","chr5","chr6","chr7",
-                "chr8","chr9","chrX","chrY"
-            ))
-        },
-        tair10 = {
-            return(c(
-                "chr1","chr2","chr3","chr4","chr5"
-            ))
-        }
-    )
-}
-
-#' Annotation downloader helper
-#'
-#' Returns a vector of genomic annotation attributes which are used by the biomaRt
-#' package in order to fetch the gene annotation for each organism. It has no
-#' parameters. Internal use.
-#'
-#' @param org one of the supported organisms.
-#' @return A character vector of Ensembl gene attributes.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' gene.attr <- get.gene.attributes()
-#'}
-get.gene.attributes <- function(org) {
-    if (org %in% c("hg18","mm9"))
-        return(c(
-            "chromosome_name",
-            "start_position",
-            "end_position",
-            "ensembl_gene_id",
-            "percentage_gc_content",
-            "strand",
-            "external_gene_id",
-            "gene_biotype"
-        ))
-    else
-        return(c(
-            "chromosome_name",
-            "start_position",
-            "end_position",
-            "ensembl_gene_id",
-            "percentage_gc_content",
-            "strand",
-            "external_gene_name",
-            "gene_biotype"
-        ))
-}
-
-#' Annotation downloader helper
-#'
-#' Returns a vector of genomic annotation attributes which are used by the biomaRt
-#' package in order to fetch the exon annotation for each organism. It has no
-#' parameters. Internal use.
-#'
-#' @param org one of the supported organisms.
-#' @return A character vector of Ensembl exon attributes.
-#' @export
-#' @author Panagiotis Moulos
-#' @examples
-#' \dontrun{
-#' exon.attr <- get.exon.attributes()
-#'}
-get.exon.attributes <- function(org) {
-    if (org %in% c("hg18","mm9"))
-        return(c(
-            "chromosome_name",
-            "exon_chrom_start",
-            "exon_chrom_end",
-            "ensembl_exon_id",
-            "strand",
-            "ensembl_gene_id",
-            "external_gene_id",
-            "gene_biotype"
-        ))
-    else if (org == "hg19")
-        return(c(
-            "chromosome_name",
-            "exon_chrom_start",
-            "exon_chrom_end",
-            "ensembl_exon_id",
-            "strand",
-            "ensembl_gene_id",
-            "gene_biotype"
-        ))
-    else
-        return(c(
-            "chromosome_name",
-            "exon_chrom_start",
-            "exon_chrom_end",
-            "ensembl_exon_id",
-            "strand",
-            "ensembl_gene_id",
-            "external_gene_name",
-            "gene_biotype"
-        ))
-}
-
 #' Group together a more strict biotype filter
 #'
 #' Returns a list with TRUE/FALSE according to the biotypes that are going to be
@@ -2814,6 +1670,10 @@ make.html.table <- function(b,h=NULL,id=NULL) {
 #' @param export.scale a character vector containing one of the supported data
 #' transformations (\code{"natural"}, \code{"log2"}, \code{"log10"},\code{"vst"}).
 #' See also the main help page of metaseqr.
+#' @param scf a scaling factor for the reads of each gene, for example the sum of
+#' exon lengths or the gene length. Devided by each read count when 
+#' \code{export.scale="rpgm"}. It provides an RPKM-like measure but not the
+#' actual RPKM as this normalization is not supported.
 #' @param log.offset a number to be added to each element of data.matrix in order
 #' to avoid Infinity on log type data transformations.
 #' @return A named list whose names are the elements in export.scale. Each list
@@ -2828,10 +1688,12 @@ make.html.table <- function(b,h=NULL,id=NULL) {
 #' tr <- make.transformation(data.matrix,c("log2","vst"))
 #' head(tr$vst)
 #'}
-make.transformation <- function(data.matrix,export.scale,log.offset=1) {
+make.transformation <- function(data.matrix,export.scale,
+    scf=NULL,log.offset=1) {
     mat <- vector("list",length(export.scale))
     names(mat) <- export.scale
     if (!is.matrix(data.matrix)) data.matrix <- as.matrix(data.matrix)
+    if (is.null(scf)) scf <- rep(1,nrow(data.matrix))
     for (scl in export.scale) {
         switch(scl,
             natural = {
@@ -2846,6 +1708,11 @@ make.transformation <- function(data.matrix,export.scale,log.offset=1) {
             vst = {
                 fit <- vsn2(data.matrix,verbose=FALSE)
                 mat[[scl]] <- predict(fit,newdata=data.matrix)
+            },
+            rpgm = {
+                mat[[scl]] <- data.matrix
+                for (i in 1:ncol(data.matrix))
+                    mat[[scl]][,i] <- data.matrix[,i]/scf
             }
         )
     }
@@ -3038,6 +1905,9 @@ make.contrast.list <- function(contrast,sample.list) {
 #' The first column MUST contain UNIQUE sample names and the second column MUST
 #' contain the biological condition where each of the samples in the first column
 #' should belong to.
+#' @param type one of \code{"simple"} or \code{"targets"} to indicate if the input
+#' is a simple two column text file or the targets file used to launch the main
+#' analysis pipeline.
 #' @return A named list whose names are the conditions of the experiments and its
 #' members are the samples belonging to each condition.
 #' @export
@@ -3049,13 +1919,18 @@ make.contrast.list <- function(contrast,sample.list) {
 #' write.table(targets,file="targets.txt",sep="\t",row.names=FALSE,quote="")
 #' sample.list <- make.sample.list("targets.txt")
 #'}
-make.sample.list <- function(input) {
+make.sample.list <- function(input,type=c("simple","targets")) {
     if (missing(input) || !file.exists(input))
         stopwrap("File to make sample list from should be a valid existing ",
             "text file!")
+    check.text.args("type",file.type,c("simple","targets"),
+        multiarg=FALSE)
     tab <- read.delim(input)
     samples <- as.character(tab[,1])
-    conditions <- unique(as.character(tab[,2]))
+    if (type=="simple")
+        conditions <- unique(as.character(tab[,2]))
+    else if (type=="targets")
+        conditions <- unique(as.character(tab[,3]))
     if (length(samples) != length(unique(samples)))
         stopwrap("Sample names must be unique for each sample!")
     sample.list <- vector("list",length(conditions))
@@ -3211,7 +2086,9 @@ make.report.messages <- function(lang) {
                     susscr3=paste("pig (<em>Sus scrofa</em>),",
                         "genome version alias susScr3"),
                     tair10=paste("arabidopsis (<em>Arabidobsis thaliana</em>)",
-                        ",","genome version alias TAIR10")
+                        ",","genome version alias TAIR10"),
+                    bmori2=paste("silkworm (<em>Bombyx mori</em>)",
+                        ",","genome version alias bmori2")
                 ),
                 refdb=list(
                     ensembl="Ensembl genomes",
@@ -3251,7 +2128,8 @@ make.report.messages <- function(lang) {
                         "weighted p-values"),
                     minp="minimum p-value across results",
                     maxp="maximum p-value across results",
-                    weight="weighted p-value across results",
+                    weight="PANDORA weighted p-value across results",
+                    pandora="PANDORA weighted p-value across results",
                     simes="Simes correction and combination method",
                     whitlock=paste("Whitlock's Z-transformation method",
                         "(Bioconductor package survcomp)"),
@@ -3299,6 +2177,7 @@ make.report.messages <- function(lang) {
                     log2="log2 scale",
                     log10="log10 scale",
                     vst="Variance stabilization transformation",
+					rpgm="Reads per Gene Model",
                     raw="Raw values",
                     normalized="Normalized values",
                     mean="Mean",
@@ -4167,6 +3046,24 @@ elap2human <- function(start.time) {
         format(.POSIXct(dt,tz="GMT"),"%H hours %M minutes %S seconds")
     else if (ndt>=86400)
         format(.POSIXct(dt,tz="GMT"),"%d days %H hours %M minutes %S seconds")
+}
+
+deprecated.warning <- function(func) {
+    switch(func,
+        read.targets = {
+            warnwrap("\"yes\" and \"no\" for read strandedness have been ",
+                "deprecated. Please use \"forward\", \"forward\" or \"no\". ",
+                "Replacing \"yes\" with \"forward\"...")
+        }
+    )
+}
+
+metaseqR.version <- function() {
+    anchor.version <- "1.5-2"
+    current.version <- as.character(numeric_version(packageVersion("metaseqR")))
+    current.version <- gsub("(.*)\\.", "\\1-", current.version)
+    cmp <- compareVersion(current.version,anchor.version)
+    return(list(current=current.version,compare=cmp))
 }
 
 ##' Fixed annotation updater

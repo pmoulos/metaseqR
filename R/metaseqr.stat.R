@@ -659,7 +659,8 @@ stat.bayseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
     for (con.name in names(contrast.list)) {
         disp("  Contrast: ", con.name)
         con <- contrast.list[[con.name]]
-        cd <- CD[,names(unlist(con))]
+        #cd <- CD[,names(unlist(con))]
+        cd <- CD[,match(names(unlist(con)),colnames(CD@data))]
         if (length(con)==2)
             baySeq::groups(cd) <- list(NDE=rep(1,length(unlist(con))),
                 DE=c(rep(1,length(con[[1]])),rep(2,length(con[[2]]))))

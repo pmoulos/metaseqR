@@ -246,6 +246,51 @@ BUG FIXES
     Institute of Medical Research, Austria.
     o Replaced "==" with all.equal while checking if the sum of weights is one
     when meta.p="weight". Of course this is the correct way to compare. Thanks 
-    to Ben Elsworth, Garvan Institute of Medical Research, Austria.
+    to Ben Elsworth, Garvan Institute of Medical Research, Syndey, Australia.
     o Fixed problem related to a bug in the current version of edgeR GLM and 
     the usage of ... in glmFit.
+
+CHANGES IN VERSION 1.5.2 (2014-12-30)
+--------------------------------------
+
+NEW FEATURES
+
+    o Added the argument exclude.list, to provide the possibility of excluding
+    samples from any analysis, e.g. in the case where after a preliminary 
+    metaseqr run, some samples are not of adequate quality. It is useful when
+    a previous analysis is restored, so as not to repeat the construction of
+    a gene model from exons for example.
+    
+BUG FIXES
+
+    o None
+
+CHANGES IN VERSION 1.5.21 (2015-01-09)
+--------------------------------------
+
+NEW FEATURES
+
+    o None
+    
+BUG FIXES
+
+    o Fixed small bug regarding annotation retrieval when directly using the
+    get.annotation function for certain genomes (e.g. pig). Thanks to Rathi
+    Ryan from Synthetic Genomics, Inc.
+
+CHANGES IN VERSION 1.5.31 (2015-03-05)
+--------------------------------------
+
+NEW FEATURES
+
+    o Added support for both forward and reverse RNA-Seq library preparation
+    protocol. Thanks to Ben Elsworth, Garvan Institute of Medical Research, 
+    Syndey, Australia.
+    o Added Reads per Gene Model length (rpgm) measurement, where gene model
+    length is either the sum of exon lengths or the gene length (depending on
+    count.type argument).
+    
+BUG FIXES
+
+    o Fixed a problem caused by a bug in baySeq 2.0.50 code which caused an
+    analysis based in baySeq to crash.

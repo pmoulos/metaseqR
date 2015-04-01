@@ -374,7 +374,14 @@
                                 <div id="summary_input_container">
                                     <strong>Read counts file:</strong> <%=counts.name%></br>
                                     <strong>Conditions:</strong> <%=paste(names(sample.list),collapse=", ")%></br>
-                                    <strong>Samples:</strong> <%=paste(unlist(sample.list),collapse=", ")%></br>
+                                    <strong>Samples included:</strong> <%=paste(unlist(sample.list),collapse=", ")%></br>
+                                    <strong>Samples excluded:</strong> 
+                                    <%=
+                                    if (!is.null(exclude.list) && !is.na(exclude.list))
+                                        cat(paste(unlist(exclude.list),collapse=", "))
+                                    else
+                                        cat("none")
+                                    %></br>
                                     <strong>Requested contrasts:</strong> <%=paste(contrast,collapse=", ")%></br>
                                     <strong>Library sizes:</strong>
                                     <%=

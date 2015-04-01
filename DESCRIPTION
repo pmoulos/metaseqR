@@ -57,11 +57,12 @@ biocViews: Software, GeneExpression, DifferentialExpression, WorkflowStep,
 VignetteBuilder: knitr
 Authors@R: c(person(given="Panagiotis", family="Moulos",
     email="moulos@fleming.gr", role=c("aut", "cre")))
-Version: 1.5.15
-Date: 2014-12-22
+Version: 1.5.31
+Date: 2015-04-01
 Collate:
-    'zzz.R'
+    'metaseqr.annotation.R'
     'metaseqr.argcheck.R'
+    'metaseqr.count.R'
     'metaseqr-data.R'
     'metaseqr.export.R'
     'metaseqr.filter.R'
@@ -74,3 +75,4 @@ Collate:
     'metaseqr.sim.R'
     'metaseqr.stat.R'
     'metaseqr.util.R'
+    'zzz.R'

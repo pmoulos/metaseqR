@@ -2,7 +2,7 @@
 \alias{make.sample.list}
 \title{Creates sample list from file}
 \usage{
-    make.sample.list(input)
+    make.sample.list(input, type=c("simple","targets"))
 }
 \arguments{
     \item{input}{a tab-delimited file structured as follows:
@@ -11,6 +11,10 @@
     column MUST contain UNIQUE sample names and the second
     column MUST contain the biological condition where each
     of the samples in the first column should belong to.}
+    
+    \item{type}{one of \code{"simple"} or \code{"targets"} to 
+    indicate if the input is a simple two column text file or 
+    the targets file used to launch the main analysis pipeline.}
 }
 \value{
     A named list whose names are the conditions of the

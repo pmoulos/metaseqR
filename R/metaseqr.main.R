@@ -89,6 +89,8 @@
 #' argument should be provided (see below). The third column MUST contain the 
 #' biological condition where each of the samples in the first column should belong 
 #' to.
+#' @param exclude.list a list of samples to exclude, in the same (list) format 
+#' as \code{sample.list} above.
 #' @param path an optional path where all the BED/BAM files are placed, to be 
 #' prepended to the BAM/BED file names in the targets file. If not given and if 
 #' the files in the second column of the targets file do not contain a path to a 
@@ -196,7 +198,7 @@
 #' @param meta.p the meta-analysis method to combine p-values from multiple
 #' statistical tests \strong{(experimental! see also the second note below,
 #' regarding meta-analysis)}. It can be one of \code{"simes"} (default), 
-#' \code{"bonferroni"}, \code{"minp"}, \code{"maxp"}, \code{"weight"},
+#' \code{"bonferroni"}, \code{"minp"}, \code{"maxp"}, \code{"weight"}, \code{"pandora"},
 #' \code{"dperm.min"}, \code{"dperm.max"}, \code{"dperm.weight"}, \code{"fisher"},
 #' \code{"fperm"}, \code{"whitlock"} or\code{"none"}. For the \code{"fisher"} and
 #' \code{"fperm"} methods, see the documentation of the R package MADAM. For the
@@ -231,7 +233,8 @@
 #' options which correspond to the latter three methods but without permutations.
 #' Generally, permutations would be accurate to use when the experiment includes
 #' >5 samples per condition (or even better 7-10) which is rather rare in RNA-Seq
-#' experiments.
+#' experiments. Finally, \code{"pandora"} is the same as \code{"weight"} and is
+#' added to be in accordance with the metaseqR paper.
 #' @param weight a vector of weights with the same length as the \code{statistics}
 #' vector containing a weight for each statistical test. It should sum to 1. 
 #' \strong{Use with caution with the} \code{dperm.weight} \strong{parameter! 
@@ -315,7 +318,11 @@
 #' @param export.scale export values from one or more transformations applied to 
 #' the data. It can be one or more of \code{"natural"}, \code{"log2"}, \code{"log10"},
 #' \code{"vst"} (Variance Stabilizing Transormation, see the documentation of DESeq 
-#' package).
+#' package) and \code{"rpgm"} which is ratio of mapped reads per gene model 
+#' (either the gene length or the sum of exon lengths, depending on \code{count.type} 
+#' argument). Note that this is not RPKM as reads are already normalized for 
+#' library size using one of the supported normalization methods. Also, \code{"rpgm"} 
+#' might be misleading when \code{normalization} is other than \code{"deseq"}.
 #' @param export.values It can be one or more of \code{"raw"} to export raw values
 #' (counts etc.) and \code{"normalized"} to export normalized counts.
 #' @param export.stats calculate and export several statistics on raw and normalized
@@ -772,6 +779,7 @@
 metaseqr <- function(
     counts,
     sample.list,
+    exclude.list=NULL,
     file.type=c("auto","sam","bam","bed"),
     path=NULL,
     contrast=NULL,
@@ -817,7 +825,7 @@ metaseqr <- function(
     adjust.method=sort(c(p.adjust.methods,"qvalue")), # Brings BH first which is the default
     meta.p=if (length(statistics)>1) c("simes","bonferroni","fisher",
         "dperm.min","dperm.max","dperm.weight","fperm","whitlock","minp","maxp",
-        "weight","none") else "none",
+        "weight","pandora","none") else "none",
     weight=rep(1/length(statistics),length(statistics)),
     nperm=10000,
     reprod=TRUE,
@@ -835,7 +843,7 @@ metaseqr <- function(
     export.where=NA, # An output directory for the project
     export.what=c("annotation","p.value","adj.p.value","meta.p.value",
         "adj.meta.p.value","fold.change","stats","counts","flags"),
-    export.scale=c("natural","log2","log10","vst"),
+    export.scale=c("natural","log2","log10","vst","rpgm"),
     export.values=c("raw","normalized"),
     export.stats=c("mean","median","sd","mad","cv","rcv"),
     export.counts.table=FALSE,
@@ -876,7 +884,7 @@ metaseqr <- function(
     { # Time to load previous analysis if existing
         from.previous <- TRUE
         tmp.env <- new.env()
-        disp("Restoring previous analysis from ",basename(counts))
+        message("Restoring previous analysis from ",basename(counts))
         load(counts,tmp.env)
         sample.list <- tmp.env$sample.list
         count.type <- tmp.env$count.type
@@ -947,6 +955,20 @@ metaseqr <- function(
             stopwrap("The sample names provided in the counts file/list do ",
                 "not match with those of the sample.list!")
     }
+    
+    # If exclude list given, check that it's a subset of sample.list, otherwise
+    # just ignore exclude.list
+    if (!is.null(exclude.list) && !is.na(exclude.list))
+    {
+        sl <- unlist(sample.list)
+        el <- unlist(exclude.list)
+        if (length(intersect(sl,el)) != length(el))
+        {
+            warnwrap("Some samples in exclude.list do not match those in the ",
+                "initial sample.list! Ignoring...",now=TRUE)
+            exclude.list <- NULL
+        }
+    }   
 
     file.type <- tolower(file.type[1])
     annotation <- tolower(annotation[1])
@@ -974,7 +996,7 @@ metaseqr <- function(
         {
             check.file.args("counts",counts)
             if (from.previous)
-                counts.name <- "previously stored analysis object"
+                counts.name <- "previously stored project"
             else
                 counts.name <- basename(counts)
         }
@@ -1014,14 +1036,14 @@ metaseqr <- function(
         "limma","nbpseq"),multiarg=TRUE)
     check.text.args("meta.p",meta.p,c("simes","bonferroni","fisher","dperm.min",
         "dperm.max","dperm.weight","fperm","whitlock","minp","maxp","weight",
-        "none"),multiarg=FALSE)
+        "pandora","none"),multiarg=FALSE)
     check.text.args("fig.format",fig.format,c("png","jpg","tiff","bmp","pdf",
         "ps"),multiarg=TRUE)
     check.text.args("export.what",export.what,c("annotation","p.value",
         "adj.p.value","meta.p.value","adj.meta.p.value","fold.change","stats",
         "counts","flags"),multiarg=TRUE)
     check.text.args("export.scale",export.scale,c("natural","log2","log10",
-        "vst"),multiarg=TRUE)
+        "rpgm","vst"),multiarg=TRUE)
     check.text.args("export.values",export.values,c("raw","normalized"),
         multiarg=TRUE)
     check.text.args("export.stats",export.stats,c("mean","median","sd","mad",
@@ -1151,7 +1173,11 @@ metaseqr <- function(
     ############################################################################
     disp("Read counts file: ",counts.name)
     disp("Conditions: ",paste(names(sample.list),collapse=", "))
-    disp("Samples: ",paste(unlist(sample.list),collapse=", "))
+    disp("Samples to include: ",paste(unlist(sample.list),collapse=", "))
+    if (!is.null(exclude.list) && !is.na(exclude.list))
+        disp("Samples to exclude: ",paste(unlist(exclude.list),collapse=", "))
+    else
+        disp("Samples to exclude: none")
     disp("Requested contrasts: ",paste(contrast,collapse=", "))
     if (!is.null(libsize.list))
     {
@@ -1323,8 +1349,7 @@ metaseqr <- function(
         {
             if (!is.null(counts)) # Otherwise it's coming ready from read2count
             {
-                if (!is.data.frame(counts) && !is.list(counts) 
-                    && !from.previous)
+                if (!is.data.frame(counts) && !is.list(counts))
                 {
                     disp("Reading counts file ",counts.name,"...")
                     exon.counts <- read.delim(counts)
@@ -1384,6 +1409,19 @@ metaseqr <- function(
         }
         else # Retrieved gene model and/or previous analysis
             the.counts <- counts
+            
+        # Exclude any samples not wanted (when e.g. restoring a previous project
+        # and having determined that some samples are of bad quality
+        if (!is.null(exclude.list) && !is.na(exclude.list))
+        {
+            for (n in names(exclude.list)) {
+                sample.list[[n]] <- setdiff(sample.list[[n]],
+                    exclude.list[[n]])
+                if (length(sample.list[[n]])==0) # Removed whole condition
+                    sample.list[n] <- NULL
+            }
+            the.counts <- the.counts[unlist(sample.list)]
+        }
 
         # Apply exon filters
         if (!is.null(exon.filters))
@@ -1527,6 +1565,19 @@ metaseqr <- function(
         gene.data <- gene.data[rownames(gene.counts),]
         gene.length <- gene.data$end - gene.data$start # Based on total gene lengths
         names(gene.length) <- rownames(gene.data)
+        
+        # Exclude any samples not wanted (when e.g. restoring a previous project
+        # and having determined that some samples are of bad quality
+        if (!is.null(exclude.list) && !is.na(exclude.list))
+        {
+            for (n in names(exclude.list)) {
+                sample.list[[n]] <- setdiff(sample.list[[n]],
+                    exclude.list[[n]])
+                if (length(sample.list[[n]])==0) # Removed whole condition
+                    sample.list[n] <- NULL
+            }
+            gene.counts <- gene.counts[,unlist(sample.list,use.names=FALSE)]
+        }
         
         if (save.gene.model)
         {
@@ -2029,14 +2080,22 @@ metaseqr <- function(
     disp("Building output files...")
     if (out.list) out <- make.export.list(contrast) else out <- NULL
     if (report) html <- make.export.list(contrast) else html <- NULL
-    if ("normalized" %in% export.values)
-        norm.list <- make.transformation(norm.genes.expr,export.scale,
+    if ("rpgm" %in% export.scale)
+        fa <- attr(gene.data,"gene.length")
+    else
+        fa <- NULL
+    if ("normalized" %in% export.values) {
+        fac <- fa[rownames(norm.genes.expr)]
+        norm.list <- make.transformation(norm.genes.expr,export.scale,fac,
             log.offset)
+    }
     else
         norm.list <- NULL
-    if ("raw" %in% export.values)
-        raw.list <- make.transformation(gene.counts.expr,export.scale,
+    if ("raw" %in% export.values) {
+        fac <- fa[rownames(gene.counts.expr)]
+        raw.list <- make.transformation(gene.counts.expr,export.scale,fac,
             log.offset)
+    }
     else
         raw.list <- NULL
     if ("flags" %in% export.what)
@@ -2049,14 +2108,18 @@ metaseqr <- function(
         gene.counts.filtered <- rbind(gene.counts.zero,gene.counts.dead)
         gene.counts.unnorm.filtered <- rbind(gene.counts.zero,
             gene.counts.unnorm)
-        if ("normalized" %in% export.values)
+        if ("normalized" %in% export.values) {
+            fac <- fa[rownames(gene.counts.filtered)]
             norm.list.filtered <- make.transformation(gene.counts.filtered,
-                export.scale,log.offset)
+                export.scale,fac,log.offset)
+        }
         else
             norm.list.filtered <- NULL
-        if ("raw" %in% export.values)
+        if ("raw" %in% export.values) {
+            fac <- fa[rownames(gene.counts.unnorm.filtered)]
             raw.list.filtered <- make.transformation(
-                gene.counts.unnorm.filtered,export.scale,log.offset)
+                gene.counts.unnorm.filtered,export.scale,fac,log.offset)
+        }
         else
             raw.list.filtered <- NULL
         if ("flags" %in% export.what && !is.null(flags))

@@ -20,8 +20,11 @@
     \code{"paired"} for paired-end reads. If this 
     column is not provided, single-end reads will be 
     assumed. There is an optional fifth column which 
-    should contain the keywords \code{"yes"} for standed
-    RNA-Seq reads or \code{"no"} for unstranded/unknown. 
+    stranded read assignment. It should contain the 
+    keywords \code{"forward"} for a forward (5'->3') 
+    strand library construction protocol, \code{"reverse"} 
+    for a reverse (3'->5') strand library construction 
+    protocol, or \code{"no"} for unstranded/unknown protocol. 
     If this column is not provided, unstranded reads will 
     be assumed.}
 

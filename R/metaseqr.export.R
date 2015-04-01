@@ -49,7 +49,7 @@ build.export <- function(gene.data,raw.gene.counts,norm.gene.counts,flags,
     adj.sum.p=rep(NA,nrow(gene.data)),
     export.what=c("annotation","p.value","adj.p.value","meta.p.value",
         "adj.meta.p.value","fold.change","stats","counts","flags"),
-    export.scale=c("natural","log2","log10","vst"),
+    export.scale=c("natural","log2","log10","rpgm","vst"),
     export.values=c("raw","normalized"),
     export.stats=c("mean","median","sd","mad","cv","rcv"),
     log.offset=1,report=TRUE
@@ -67,7 +67,7 @@ build.export <- function(gene.data,raw.gene.counts,norm.gene.counts,flags,
     if ("annotation" %in% export.what) {
         disp("      binding annotation...")
         export <- cbind(export,gene.data)
-        if (report) 
+        if (report)
             export.html <- cbind(export.html,make.html.cells(gene.data,
                 type="text"))
         the.names <- c(the.names,colnames(gene.data))
