@@ -175,22 +175,36 @@ read2count <- function(targets,annotation,file.type=targets$type,
             stranded) {
             disp("Reading bam file ",basename(sample.files[n])," for sample ",
                 "with name ",n,". This might take some time...")
-            bam <- BamFile(sample.files[n])
-            libsize <- countBam(bam)$records
             if (!is.null(paired)) {
                 p <- tolower(paired[n])
-                if (p=="single")
+                if (p=="single") {
                     singleEnd <- TRUE
-                else if (p=="paired")
+                    fragments <- FALSE
+                    asMates <- FALSE
+                }
+                else if (p=="paired") {
                     singleEnd <- FALSE
+                    fragments <- FALSE
+                    asMates <- TRUE
+                }
+                else if (p=="mixed") {
+                    singleEnd <- FALSE
+                    fragments <- TRUE
+                    asMates <- TRUE
+                }
                 else {
                     warnwrap("Information regarding single- or paired-end ",
                         "reads is not correctly provided! Assuming single...")
                     singleEnd <- TRUE
+                    fragments <- FALSE
+                    asMates <- FALSE
                 }
             }
-            else
+            else {
                 singleEnd <- TRUE
+                fragments <- FALSE
+                asMates <- FALSE
+            }
             if (!is.null(stranded)) {
                 s <- tolower(stranded[n])
                 if (s %in% c("forward","reverse"))
@@ -205,12 +219,16 @@ read2count <- function(targets,annotation,file.type=targets$type,
             }
             else
                 ignore.strand <- TRUE
+            bam <- BamFile(sample.files[n],asMates=asMates)
+            libsize <- countBam(bam)$records
             if (libsize>0) {
                 disp("  Counting reads overlapping with given annotation...")
-                if (singleEnd)
+                if (singleEnd & !fragments)
                     disp("    ...for single-end reads...")
-                else
+                else if (!singleEnd & !fragments)
                     disp("    ...for paired-end reads...")
+                else if (!singleEnd & fragments)
+                    disp("    ...for mixed single- and paired-end reads...")
                 if (ignore.strand)
                     disp("    ...ignoring strandedness...")
                 else {
@@ -220,7 +238,8 @@ read2count <- function(targets,annotation,file.type=targets$type,
                             annotation.gr)=="+","-","+")
                 }
                 counts <- summarizeOverlaps(annotation.gr,bam,
-                    singleEnd=singleEnd,ignore.strand=ignore.strand)
+                    singleEnd=singleEnd,fragments=fragments,
+                    ignore.strand=ignore.strand)
                 counts <- assays(counts)$counts
             }
             else
@@ -308,7 +327,8 @@ reduce.exons <- function(gr,multic=FALSE) {
 #' argument should be provided (see below). The third column MUST contain the
 #' biological condition where each of the samples in the first column should belong
 #' to. There is an optional fourth column which should contain the keywords 
-#' \code{"single"} for single-end reads or \code{"paired"} for paired-end reads. 
+#' \code{"single"} for single-end reads, \code{"paired"} for paired-end reads or
+#' \code{"mixed"} for BAM files that contain bith paired- and single-end reads.
 #' If this column is not provided, single-end reads will be assumed. There is an
 #' optional fifth column which controls stranded read assignment. It should 
 #' contain the keywords \code{"forward"} for a forward (5'->3') strand library 
@@ -374,7 +394,7 @@ read.targets <- function(input,path=NULL) {
             if (!all(whats %in% c("yes","no","forward","reverse",
                 "single","paired")))
                 stopwrap("Unknown options for paired-end reads and/or ",
-                    "strandedness in targets file")
+                    "strandedness in targets file.")
             what <- whats[1]
             if (what %in% c("single","paired")) {
                 has.paired.info <- TRUE
@@ -397,8 +417,9 @@ read.targets <- function(input,path=NULL) {
         }
         if (ncol(tab)==5) { # Both
             whats.paired <- tolower(as.character(tab[,4]))
-            if (!all(whats.paired %in% c("single","paired")))
-                stopwrap("Unknown option for paired-end reads in targets file")
+            if (!all(whats.paired %in% c("single","paired","mixed")))
+                stopwrap("Unknown option for type of reads (single, paired, ",
+                    "mixed) in targets file.")
             whats.strand <- tolower(as.character(tab[,5]))
             if (!all(whats.strand %in% c("yes","no","forward","reverse")))
                 stopwrap("Unknown option for read strandedness in targets file")
@@ -467,4 +488,3 @@ read.targets <- function(input,path=NULL) {
     return(list(samples=sample.list,files=file.list,paired=paired.list,
         stranded=stranded.list,type=type))
 }
-

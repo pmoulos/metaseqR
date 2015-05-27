@@ -673,7 +673,7 @@ stat.bayseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
             equalDispersions=stat.args$equalDispersions,
             estimation=stat.args$estimation,zeroML=stat.args$zeroML,
             consensus=stat.args$consensus,cl=stat.args$cl)
-        cd <- baySeq::getLikelihoods.NB(cd,pET=stat.args$pET,
+        cd <- baySeq::getLikelihoods(cd,pET=stat.args$pET,
             marginalise=stat.args$marginalise,subset=stat.args$subset,
             priorSubset=stat.args$priorSubset,bootStraps=stat.args$bootStraps,
             conv=stat.args$conv,nullData=stat.args$nullData,

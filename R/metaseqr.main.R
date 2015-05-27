@@ -1017,7 +1017,8 @@ metaseqr <- function(
         annotation <- "download"
     }
 
-    if (meta.p %in% c("weight","dperm.weight") && abs(1-sum(weight))>1e-5)
+    if (meta.p %in% c("weight","pandora","dperm.weight") && 
+        abs(1-sum(weight))>1e-5)
         stopwrap("The weights given for p-value combination should sum to 1!")
 
     check.text.args("file.type",file.type,c("auto","sam","bam","bed"),
@@ -1774,6 +1775,9 @@ metaseqr <- function(
             matrix = { # Has been normalized with EDASeq or NOISeq or nothing
                 temp.matrix <- norm.genes
             },
+            data.frame = { # Has been normalized with or nothing
+                temp.matrix <- as.matrix(norm.genes)
+            },
             list = { # Has been normalized with NBPSeq and main method was "nbpseq"
                 temp.matrix <- as.matrix(round(sweep(norm.genes$counts,2,
                     norm.genes$norm.factors,"*")))
@@ -1830,6 +1834,9 @@ metaseqr <- function(
                 },
                 matrix = { # Has been normalized with EDASeq or NOISeq
                     norm.genes.expr <- norm.genes[-the.dead.ind,]
+                },
+                data.frame = { # Has been normalized with EDASeq or NOISeq
+                    norm.genes.expr <- as.matrix(norm.genes[-the.dead.ind,])
                 },
                 list = { # Has been normalized with NBPSeq, main.method="nbpseq"
                     norm.genes.expr <- norm.genes
@@ -2195,6 +2202,9 @@ metaseqr <- function(
                     weight = {
                         cut.ind <- which(sum.p.list[[cnt]]<=pcut)
                     },
+                    pandora = {
+                        cut.ind <- which(sum.p.list[[cnt]]<=pcut)
+                    },
                     simes = {
                         cut.ind <- which(sum.p.list[[cnt]]<=pcut)
                     },
@@ -2252,7 +2262,7 @@ metaseqr <- function(
         {
             the.html.header <- make.html.header(the.export$headers)
             if (!is.null(report.top)) {
-                topi <- round(report.top*nrow(export.html))
+                topi <- ceiling(report.top*nrow(export.html))
                 the.html.rows <- make.html.rows(export.html[1:topi,])
             }
             else

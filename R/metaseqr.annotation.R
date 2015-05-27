@@ -94,7 +94,7 @@ get.ensembl.annotation <- function(org,type) {
             gene_id=bm$ensembl_gene_id,
             gc_content=bm$percentage_gc_content,
             strand=ifelse(bm$strand==1,"+","-"),
-            gene_name=if (org %in% c("hg18","mm9")) bm$external_gene_id 
+            gene_name=if (org %in% c("hg18","mm9","tair10")) bm$external_gene_id 
                 else bm$external_gene_name,
             biotype=bm$gene_biotype
         )
@@ -128,8 +128,8 @@ get.ensembl.annotation <- function(org,type) {
                 exon_id=bm$ensembl_exon_id,
                 gene_id=bm$ensembl_gene_id,
                 strand=ifelse(bm$strand==1,"+","-"),
-                gene_name=if (org %in% c("hg18","mm9")) bm$external_gene_id 
-                    else bm$external_gene_name,
+                gene_name=if (org %in% c("hg18","mm9","tair10")) 
+                    bm$external_gene_id else bm$external_gene_name,
                 biotype=bm$gene_biotype
             )
             rownames(ann) <- ann$exon_id
@@ -475,7 +475,7 @@ get.host <- function(org) {
         danrer7 = { return("www.ensembl.org") },
         pantro4 = { return("www.ensembl.org") },
         susscr3 = { return("www.ensembl.org") },
-        tair10 = { return("www.ensembl.org") },
+        tair10 = { return("www.biomart.org") },
         bmori2 = { return("metazoa.ensembl.org") }
     )
 }
@@ -504,7 +504,7 @@ get.alt.host <- function(org) {
         danrer7 = { return("uswest.ensembl.org") },
         pantro4 = { return("uswest.ensembl.org") },
         susscr3 = { return("uswest.ensembl.org") },
-        tair10 = { return("uswest.ensembl.org") },
+        tair10 = { return("www.biomart.org") },
         bmori2 = { return("metazoa.ensembl.org") }
     )
 }
@@ -656,7 +656,7 @@ get.valid.chrs <- function(org)
 #' gene.attr <- get.gene.attributes()
 #'}
 get.gene.attributes <- function(org) {
-    if (org %in% c("hg18","mm9","bmori2"))
+    if (org %in% c("hg18","mm9","tair10","bmori2"))
         return(c(
             "chromosome_name",
             "start_position",
@@ -695,7 +695,7 @@ get.gene.attributes <- function(org) {
 #' exon.attr <- get.exon.attributes()
 #'}
 get.exon.attributes <- function(org) {
-    if (org %in% c("hg18","mm9","bmori2"))
+    if (org %in% c("hg18","mm9","tair10","bmori2"))
         return(c(
             "chromosome_name",
             "exon_chrom_start",

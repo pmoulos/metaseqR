@@ -4,7 +4,7 @@
 \usage{
     diagplot.boxplot(mat, name = NULL, log.it = "auto",
         y.lim = "default", is.norm = FALSE, output = "x11",
-        path = NULL, ...)
+        path = NULL, alt.names = NULL, ...)
 }
 \arguments{
     \item{mat}{the count data matrix.}
@@ -40,6 +40,11 @@
     available).}
 
     \item{path}{the path to create output files.}
+    
+    \item{alt.names}{an optional vector of names, e.g. HUGO
+    gene symbols, alternative or complementary to the unique
+    rownames of \code{mat} (which must exist!). It is used only 
+    in JSON output.}
 
     \item{...}{further arguments to be passed to plot
     devices, such as parameter from \code{\link{par}}.}

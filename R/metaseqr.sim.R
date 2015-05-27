@@ -53,7 +53,8 @@ estimate.aufc.weights <- function(counts,normalization,statistics,nsim=10,
     N=10000,samples=c(3,3),ndeg=c(500,500),top=500,model.org="mm9",fc.basis=1.5,
     seed=NULL,draw.fpc=FALSE,multic=FALSE,...) {
     if (!require(zoo))
-        stopwrap("R pacakage zoo is required in order to estimate AUFC weights!")
+        stopwrap("R pacakage zoo is required in order to estimate AUFC ",
+            "weights!")
 
     if (is.null(seed)) {
         seed.start <- round(100*runif(1))
@@ -68,8 +69,8 @@ estimate.aufc.weights <- function(counts,normalization,statistics,nsim=10,
     }
     
     if (ncol(counts)<4)
-        stopwrap("Cannot estimate AUFC weights with an initial dataset with less ",
-            "than 4 samples!")
+        stopwrap("Cannot estimate AUFC weights with an initial dataset with ",
+            "less than 4 samples!")
     else if (ncol(counts)>=4 && ncol(counts)<10) {
         set.seed(seed.start)
         reind <- sample(1:ncol(counts),20,replace=TRUE)
@@ -77,35 +78,63 @@ estimate.aufc.weights <- function(counts,normalization,statistics,nsim=10,
     }
     par.list <- estimate.sim.params(counts,...)
 
-    disp("Running simulations... This procedure requires time... Please wait...")
-    sim.results <- wapply(multic,seed,function(x,normalization,statistics,N,par.list,
-        samples,ndeg,fc.basis,model.org) {
+    disp("Running simulations... This procedure requires time... Please ",
+        "wait...")
+    sim.results <- wapply(multic,seed,function(x,normalization,statistics,N,
+        par.list,samples,ndeg,fc.basis,model.org) {
         D <- make.sim.data.sd(N=N,param=par.list,samples=samples,ndeg=ndeg,
             fc.basis=fc.basis,model.org=model.org,seed=x)
         dd <- D$simdata
         
-        tmp <- metaseqr(
-            counts=dd,
-            sample.list=list(G1=paste("G1_rep",1:samples[1],sep=""),
-                G2=paste("G2_rep",1:samples[2],sep="")),
-            contrast=c("G1_vs_G2"),
-            annotation="embedded",
-            id.col=4,
-            gc.col=5,
-            name.col=7,
-            bt.col=8,
-            count.type="gene",
-            normalization=normalization,
-            statistics=statistics,
-            meta.p="simes",
-            fig.format="png",
-            preset="all.basic",
-            export.where=tempdir(),
-            qc.plots=NULL,
-            report=FALSE,
-            run.log=FALSE,
-            out.list=TRUE
-        )
+        if (!is.null(model.org)) {
+            tmp <- metaseqr(
+                counts=dd,
+                sample.list=list(G1=paste("G1_rep",1:samples[1],sep=""),
+                    G2=paste("G2_rep",1:samples[2],sep="")),
+                contrast=c("G1_vs_G2"),
+                annotation="embedded",
+                id.col=4,
+                gc.col=5,
+                name.col=7,
+                bt.col=8,
+                org=model.org,
+                count.type="gene",
+                normalization=normalization,
+                statistics=statistics,
+                meta.p="simes",
+                fig.format="png",
+                preset="all.basic",
+                export.where=tempdir(),
+                qc.plots=NULL,
+                report=FALSE,
+                run.log=FALSE,
+                out.list=TRUE
+            )
+        }
+        else {
+            tmp <- metaseqr(
+                counts=dd,
+                sample.list=list(G1=paste("G1_rep",1:samples[1],sep=""),
+                    G2=paste("G2_rep",1:samples[2],sep="")),
+                contrast=c("G1_vs_G2"),
+                annotation="embedded",
+                id.col=4,
+                gc.col=5,
+                name.col=7,
+                bt.col=8,
+                count.type="gene",
+                normalization=normalization,
+                statistics=statistics,
+                meta.p="simes",
+                fig.format="png",
+                preset="all.basic",
+                export.where=tempdir(),
+                qc.plots=NULL,
+                report=FALSE,
+                run.log=FALSE,
+                out.list=TRUE
+            )
+        }
 
         # Retrieve several p-values
         p.list <- vector("list",length(statistics))

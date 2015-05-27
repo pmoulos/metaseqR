@@ -278,7 +278,7 @@ BUG FIXES
     get.annotation function for certain genomes (e.g. pig). Thanks to Rathi
     Ryan from Synthetic Genomics, Inc.
 
-CHANGES IN VERSION 1.5.31 (2015-03-05)
+CHANGES IN VERSION 1.7.0 (2015-03-05)
 --------------------------------------
 
 NEW FEATURES
@@ -294,3 +294,29 @@ BUG FIXES
 
     o Fixed a problem caused by a bug in baySeq 2.0.50 code which caused an
     analysis based in baySeq to crash.
+
+CHANGES IN VERSION 1.7.12 (2015-05-15)
+--------------------------------------
+
+NEW FEATURES
+
+    o None
+    
+BUG FIXES
+
+    o Fixed a crashing problem when weight="pandora".
+    o Fixed deprecation issues.
+
+CHANGES IN VERSION 1.9.0 (2015-05-27)
+--------------------------------------
+
+NEW FEATURES
+
+    o Added ability to export JSON for a few graphs to
+    be used with Highcharts library for interactive 
+    visualization.
+
+BUG FIXES
+
+    o None.
+

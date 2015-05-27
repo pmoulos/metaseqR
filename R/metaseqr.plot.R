@@ -125,7 +125,8 @@ diagplot.metaseqr <- function(object,sample.list,annotation=NULL,contrast.list=N
             gc=annotation$gc_content,
             chromosome=annotation[,1:3],
             factors=data.frame(class=as.class.vector(sample.list)),
-            biotype=annotation$biotype
+            biotype=annotation$biotype,
+            gene_name=as.character(annotation$gene_name)
         )
 
     raw.plots <- c("mds","biodetection","countsbio","saturation","readnoise",
@@ -300,6 +301,9 @@ diagplot.metaseqr <- function(object,sample.list,annotation=NULL,contrast.list=N
 #' reporting the output, through the highcharts javascript library (JSON for
 #' boxplots not yet available).
 #' @param path the path to create output files.
+#' @param alt.names an optional vector of names, e.g. HUGO gene symbols, alternative
+#' or complementary to the unique names of \code{f} or \code{p} (one of them must
+#' be named!). It is used only in JSON output.
 #' @param ... further arguments to be passed to plot devices, such as parameter
 #' from \code{\link{par}}.
 #' @return The filename of the boxplot produced if it's a file.
@@ -317,7 +321,7 @@ diagplot.metaseqr <- function(object,sample.list,annotation=NULL,contrast.list=N
 #' diagplot.boxplot(object,sample.list)
 #'}
 diagplot.boxplot <- function(mat,name=NULL,log.it="auto",y.lim="default",
-    is.norm=FALSE,output="x11",path=NULL,...) {
+    is.norm=FALSE,output="x11",path=NULL,alt.names=NULL,...) {
     if (is.null(path)) path <- getwd()
     if (is.norm)
         status<- "normalized"
@@ -331,7 +335,7 @@ diagplot.boxplot <- function(mat,name=NULL,log.it="auto",y.lim="default",
     else if (log.it=="yes")
         mat <- log2disp(mat)
     # Define the axis limits based on user input
-    if (!is.numeric(y.lim) && y.lim=="auto") {
+    if (!is.numeric(y.lim) && y.lim=="default") {
         min.y <- floor(min(mat))
         max.y <- ceiling(max(mat))
     }
@@ -363,15 +367,50 @@ diagplot.boxplot <- function(mat,name=NULL,log.it="auto",y.lim="default",
     mat.list <- list()
     for (i in 1:ncol(mat))
         mat.list[[i]] <- mat[,i]
-    fil <- file.path(path,paste("boxplot_",status,".",output,sep=""))
-    graphics.open(output,fil)
-    if (!is.numeric(y.lim) && y.lim=="default")
-        boxplot(mat.list,names=nams,col=b.cols,las=2,main=paste("Boxplot ",
-            status,sep=""),...)
-    else
-        boxplot(mat.list,names=nams,col=b.cols,ylim=c(min.y,max.y),las=2,
-            main=paste("Boxplot ",status,sep=""),...)
-    graphics.close(output)
+    names(mat.list) <- nams
+    if (output != "json") {
+        fil <- file.path(path,paste("boxplot_",status,".",output,sep=""))
+        graphics.open(output,fil)
+        if (!is.numeric(y.lim) && y.lim=="default")
+            b <- boxplot(mat.list,names=nams,col=b.cols,las=2,main=paste(
+                "Boxplot ",status,sep=""),...)
+        else
+            b <- boxplot(mat.list,names=nams,col=b.cols,ylim=c(min.y,max.y),
+                las=2,main=paste("Boxplot ",status,sep=""),...)
+        graphics.close(output)
+    }
+    else {
+        # Create boxplot object
+        b <- boxplot(mat.list,plot=FALSE)
+        colnames(b$stat) <- nams
+        # Locate the outliers
+        o.list <- lapply(names(mat.list),function(x,M,b) {
+            v <- b[,x]
+            o <- which(M[[x]]<v[1] | M[[x]]>v[5])
+            if (length(o)>0)
+                return(M[[x]][o])
+            else
+                return(NULL)
+        },mat.list,b$stat)
+        # Create output object
+        obj <- list(
+            x=NULL,
+            y=NULL,
+            plot=b,
+            samples=name,
+            ylims=c(min.y,max.y),
+            xlims=NULL,
+            status=status,
+            pcut=NULL,
+            fcut=NULL,
+            altnames=alt.names,
+            user=o.list
+        )
+        json <- boxplotToJSON(obj)
+        fil <- file.path(path,paste("boxplot_",status,".json",sep=""))
+        disp("Writing ",fil)
+        write(json,fil)
+    }
     return(fil)
 }
 
@@ -425,25 +464,50 @@ diagplot.mds <- function(x,sample.list,method="spearman",log.it=TRUE,
         y <- x
     d <- as.dist(0.5*(1-cor(y,method=method)))
     mds.obj <- cmdscale(d,eig=TRUE,k=2)
-    fil <- file.path(path,paste("mds.",output,sep=""))
-    if (output %in% c("pdf","ps","x11"))
-        graphics.open(output,fil,width=9,height=7)
-    else
-        graphics.open(output,fil,width=1024,height=768)
     xr <- diff(range(min(mds.obj$points[,1]),max(mds.obj$points[,1])))
     yr <- diff(range(min(mds.obj$points[,2]),max(mds.obj$points[,2])))
     xlim <- c(min(mds.obj$points[,1])-xr/10,max(mds.obj$points[,1])+xr/10)
     ylim <- c(min(mds.obj$points[,2])-yr/10,max(mds.obj$points[,2])+yr/10)
-    plot(mds.obj$points[,1],mds.obj$points[,2],
-         col=colspace[1:length(levels(classes))][design],
-         pch=pchspace[1:length(levels(classes))][design],
-         xlim=xlim,ylim=ylim,
-         main="MDS plot",xlab="MDS 1",ylab="MDS 2",
-         cex=0.9,cex.lab=0.9,cex.axis=0.9,cex.main=0.9)
-    text(mds.obj$points[,1],mds.obj$points[,2],labels=colnames(x),pos=3,
-        cex=0.7)
-    grid()
-    graphics.close(output)
+    if (output!="json") {
+        fil <- file.path(path,paste("mds.",output,sep=""))
+        if (output %in% c("pdf","ps","x11"))
+            graphics.open(output,fil,width=9,height=7)
+        else
+            graphics.open(output,fil,width=1024,height=768)     
+        plot(mds.obj$points[,1],mds.obj$points[,2],
+             col=colspace[1:length(levels(classes))][design],
+             pch=pchspace[1:length(levels(classes))][design],
+             xlim=xlim,ylim=ylim,
+             main="MDS plot",xlab="MDS 1",ylab="MDS 2",
+             cex=0.9,cex.lab=0.9,cex.axis=0.9,cex.main=0.9)
+        text(mds.obj$points[,1],mds.obj$points[,2],labels=colnames(x),pos=3,
+            cex=0.7)
+        grid()
+        graphics.close(output)
+    }
+    else {
+        # Create output object
+        xx <- mds.obj$points[,1]
+        yy <- mds.obj$points[,2]
+        names(xx) <- names(yy) <- unlist(sample.list)
+        obj <- list(
+            x=xx,
+            y=yy,
+            plot=NULL,
+            samples=sample.list,
+            ylim=ylim,
+            xlim=xlim,
+            status=NULL,
+            pcut=NULL,
+            fcut=NULL,
+            altnames=NULL,
+            user=NULL
+        )
+        json <- mdsToJSON(obj)
+        fil <- file.path(path,"mds.json")
+        disp("Writing ",fil)
+        write(json,fil)
+    }
     return(fil)
 }
 
@@ -795,7 +859,7 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
 #'   biodist.opts=list(p=p,pcut=0.1,name="A_vs_B"))
 #'}
 diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
-    "countsbio", "saturation", "rnacomp", "biodist"),output="x11",
+    "countsbio","saturation","rnacomp","readnoise","biodist"),output="x11",
     biodist.opts=list(p=NULL,pcut=NULL,name=NULL),path=NULL,is.norm=FALSE,
     ...) {
     if (is.null(path)) path <- getwd()
@@ -839,33 +903,102 @@ diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
         biodetection = {
             diagplot.data <- NOISeq::dat(local.obj,type=which.plot)
             samples <- unlist(sample.list)
-            fil <- character(length(samples))
-            names(fil) <- samples
-            for (i in 1:length(samples)) {
-                fil[samples[i]] <- file.path(path,paste(which.plot,"_",
-                    samples[i],".",output,sep=""))
-                if (output %in% c("pdf","ps","x11"))
-                    graphics.open(output,fil[samples[i]],width=9,height=7)
-                else
-                    graphics.open(output,fil[samples[i]],width=1024,height=768)
-                explo.plot(diagplot.data,samples=i)
-                graphics.close(output)
+            if (output!="json") {
+                fil <- character(length(samples))
+                names(fil) <- samples
+                for (i in 1:length(samples)) {
+                    fil[samples[i]] <- file.path(path,paste(which.plot,"_",
+                        samples[i],".",output,sep=""))
+                    if (output %in% c("pdf","ps","x11"))
+                        graphics.open(output,fil[samples[i]],width=9,height=7)
+                    else
+                        graphics.open(output,fil[samples[i]],width=1024,height=768)
+                    explo.plot(diagplot.data,samples=i)
+                    graphics.close(output)
+                }
+            }
+            else {
+                diagplot.data.save = NOISeq::dat2save(diagplot.data)
+                obj <- list(
+                   x=NULL,
+                   y=NULL,
+                   plot=NULL,
+                   samples=sample.list,
+                   ylims=NULL,
+                   xlims=NULL,
+                   status=status,
+                   pcut=NULL,
+                   fcut=NULL,
+                   altnames=covars$gene_name,
+                   user=list(plotdata=diagplot.data.save,covars=covars)
+                )
+                json <- bioDetectionToJSON(obj)
+                fil <- character(length(samples))
+                names(fil) <- samples
+                for (i in 1:length(samples)) {
+                    fil[samples[i]] <- file.path(path,
+                        paste(which.plot,"_",samples[i],".json",sep=""))
+                    disp("Writing ",fil[samples[i]])
+                    write(json[[i]],fil[samples[i]])
+                }
             }
         },
         countsbio = {
-            diagplot.data <- NOISeq::dat(local.obj,type=which.plot,factor=NULL)
             samples <- unlist(sample.list)
-            fil <- character(length(samples))
-            names(fil) <- samples
-            for (i in 1:length(samples)) {
-                fil[samples[i]] <- file.path(path,paste(which.plot,"_",
-                    samples[i],".",output,sep=""))
-                if (output %in% c("pdf","ps","x11"))
-                    graphics.open(output,fil[samples[i]],width=9,height=7)
-                else
-                    graphics.open(output,fil[samples[i]],width=1024,height=768)
-                explo.plot(diagplot.data,samples=i,plottype="boxplot")
-                graphics.close(output)
+            if (output!="json") {
+                diagplot.data <- NOISeq::dat(local.obj,type=which.plot,
+                    factor=NULL)
+                fil <- character(length(samples))
+                names(fil) <- samples
+                for (i in 1:length(samples)) {
+                    fil[samples[i]] <- file.path(path,paste(which.plot,"_",
+                        samples[i],".",output,sep=""))
+                    if (output %in% c("pdf","ps","x11"))
+                        graphics.open(output,fil[samples[i]],width=9,height=7)
+                    else
+                        graphics.open(output,fil[samples[i]],width=1024,
+                            height=768)
+                    explo.plot(diagplot.data,samples=i,plottype="boxplot")
+                    graphics.close(output)
+                }
+            }
+            else {
+                colnames(x) <- unlist(sample.list)
+                obj <- list(
+                   x=NULL,
+                   y=NULL,
+                   plot=NULL,
+                   samples=sample.list,
+                   ylims=NULL,
+                   xlims=NULL,
+                   status=status,
+                   pcut=NULL,
+                   fcut=NULL,
+                   altnames=covars$gene_name,
+                   user=list(counts=nat2log(x),covars=covars)
+                )
+                # Write JSON by sample
+                fil <- vector("list",2)
+                names(fil) <- c("sample","biotype")
+                fil[["sample"]] <- character(length(samples))
+                names(fil[["sample"]]) <- samples
+                bts <- unique(as.character(obj$user$covars$biotype))
+                fil[["biotype"]] <- character(length(bts))
+                names(fil[["biotype"]]) <- bts
+                json <- countsBioToJSON(obj,by="sample")
+                for (i in 1:length(samples)) {
+                    fil[["sample"]][samples[i]] <- file.path(path,
+                        paste(which.plot,"_",samples[i],".json",sep=""))
+                    disp("Writing ",fil[["sample"]][samples[i]])
+                    write(json[[i]],fil[["sample"]][samples[i]])
+                }
+                json <- countsBioToJSON(obj,by="biotype")
+                for (i in 1:length(bts)) {
+                    fil[["biotype"]][bts[i]] <- file.path(path,
+                        paste(which.plot,"_",bts[i],".json",sep=""))
+                    disp("Writing ",fil[["biotype"]][bts[i]])
+                    write(json[[i]],fil[["biotype"]][bts[i]])
+                }
             }
         },
         saturation = {
@@ -896,11 +1029,34 @@ diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
         },
         readnoise = {
             D <- cddat(local.obj)
-            fil <- file.path(path,paste(which.plot,".",output,sep=""))
-            graphics.open(output,fil)
-            cdplot(D,main="RNA-Seq reads noise")
-            grid()
-            graphics.close(output)
+            if (output!="json") {
+                fil <- file.path(path,paste(which.plot,".",output,sep=""))
+                graphics.open(output,fil)
+                cdplot(D,main="RNA-Seq reads noise")
+                grid()
+                graphics.close(output)
+            }
+            else {
+                colnames(D$data2plot)[2:ncol(D$data2plot)] <- 
+                    unlist(sample.list)
+                obj <- list(
+                    x=NULL,
+                    y=NULL,
+                    plot=NULL,
+                    samples=sample.list,
+                    xlim=NULL,
+                    ylim=NULL,
+                    status=NULL,
+                    pcut=NULL,
+                    fcut=NULL,
+                    altnames=NULL,
+                    user=D$data2plot
+                )
+                json <- readNoiseToJSON(obj)
+                fil <- file.path(path,paste(which.plot,".json",sep=""))
+                disp("Writing ",fil)
+                write(json,fil)
+            }
         },
         biodist = { # We have to fake a noiseq object
             p <- biodist.opts$p
@@ -1001,6 +1157,11 @@ diagplot.noiseq <- function(x,sample.list,covars,which.plot=c("biodetection",
 #'}
 diagplot.noiseq.saturation <- function(x,o,tb,path=NULL) {
     if (is.null(path)) path <- getwd()
+    if (length(unique(tb))==1) {
+        warnwrap("Saturation plot cannot be created with only one biotype! ",
+            "Skipping...")
+        return(NULL)
+    }
     total.biotypes <- table(tb)
     the.biotypes <- names(tb)
     biotypes <- colnames(x[[1]][,2:ncol(x[[1]])])
@@ -1238,140 +1399,27 @@ diagplot.volcano <- function(f,p,con=NULL,fcut=1,pcut=0.05,alt.names=NULL,
             xjust=1,yjust=0,box.lty=0,x.intersp=0.5,cex=0.8,text.font=2
         )
         graphics.close(output)
-        return(fil)
     }
     else {
-        if (is.null(alt.names))
-            point.format=paste("<b>id: </b>{point.name}<br><b>fold change:",
-                "</b>{point.x}<br><b>significance: </b>{point.y}")
-        else
-            point.format=paste("<b>name: </b>{point.alt_name}<br><b>id:",
-                "</b>{point.name}<br><b>fold change:",
-                "</b>{point.x}<br><b>significance: </b>{point.y}")
-        json <- toJSON(
-            list(
-                    chart=list(
-                    type="scatter",
-                    zoomType="xy"
-                ),
-                title=list(
-                    text=paste("Volcano plot for",con)
-                ),
-                xAxis=list(
-                    title=list(
-                        enabled=TRUE,
-                        text="Fold change"
-                    ),
-                    startOnTick=TRUE,
-                    endOnTick=TRUE,
-                    showLastLabel=TRUE,
-                    gridLineWidth=1,
-                    min=xlim[1],
-                    max=xlim[2]
-                ),
-                yAxis=list(
-                    title=list(
-                        enabled=TRUE,
-                        text="-log10(p-value)"
-                    ),
-                    startOnTick=TRUE,
-                    endOnTick=TRUE,
-                    showLastLabel=TRUE,
-                    gridLineWidth=1,
-                    min=ylim[1]-2,
-                    max=ylim[2]
-                ),
-                #legend=list(
-                #    layout="vertical",
-                #    align="left",
-                #    verticalAlign="top",
-                #    floating=TRUE,
-                #    backgroundColor="#FFFFFF",
-                #    borderWidth=1
-                #),
-                plotOptions=list(
-                    scatter=list(
-                        allowPointSelect=TRUE,
-                        marker=list(
-                            radius=2,
-                            states=list(
-                                hover=list(
-                                    enabled=TRUE,
-                                    lineColor="#333333"
-                                )
-                            )
-                        ),
-                        states=list(
-                            hover=list(
-                                marker=list(
-                                    enabled=FALSE
-                                )
-                            )
-                        ),
-                        tooltip=list(
-                            headerFormat=paste("<span style=\"font-size:12px;",
-                                "color:{series.color}\">{series.name}<br>"),
-                            #pointFormat=paste("<b>name: </b>{point.name}<br><b>fold",
-                            #    "change: </b>{point.x}<br><b>significance:",
-                            #    "</b>{point.y}")
-                            pointFormat=point.format
-                        ),
-                        turboThreshold=50000
-                    )
-                ),
-                series=list(
-                    list(
-                        name="up-regulated",
-                        color="#EE0000",
-                        data=make.highcharts.points(f[up],p[up],alt.names[up])
-                    ),
-                    list(
-                        name="down-regulated",
-                        color="#00CD00",
-                        data=make.highcharts.points(f[down],p[down],
-                            alt.names[down])
-                    ),
-                    list(
-                        name="unregulated",
-                        color="#0000EE",
-                        data=make.highcharts.points(ff,pp,alt.names.neutral)
-                    ),
-                    list(
-                        name="downfold threshold",
-                        color="#000000",
-                        type="line",
-                        dashStyle="Dash",
-                        marker=list(
-                            enabled=FALSE
-                        ),
-                        data=list(c(-fcut,ylim[1]-5),c(-fcut,ylim[2]))
-                    ),
-                    list(
-                        name="upfold threshold",
-                        color="#000000",
-                        type="line",
-                        dashStyle="Dash",
-                        marker=list(
-                            enabled=FALSE
-                        ),
-                        data=list(c(fcut,ylim[1]-5),c(fcut,ylim[2]))
-                    ),
-                    list(
-                        name="significance threshold",
-                        color="#000000",
-                        type="line",
-                        dashStyle="DashDot",
-                        marker=list(
-                            enabled=FALSE
-                        ),
-                        data=list(c(xlim[1],-log10(pcut)),c(xlim[2],
-                            -log10(pcut)))
-                    )
-                )
-            )
+        obj <- list(
+            x=f,
+            y=p,
+            plot=NULL,
+            samples=NULL,
+            xlim=xlim,
+            ylim=ylim,
+            status=NULL,
+            pcut=pcut,
+            fcut=fcut,
+            altnames=alt.names,
+            user=list(up=up,down=down,unf=ff,unp=pp,ualt=alt.names.neutral,
+                con=con)
         )
-        return(json)
+        json <- volcanoToJSON(obj)
+        fil <- file.path(path,paste("volcano_",con,".json",sep=""))
+        write(json,fil)
     }
+    return(fil)
 }
 
 #' Diagnostic heatmap of differentially expressed genes

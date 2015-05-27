@@ -4,7 +4,7 @@
 \usage{
     diagplot.noiseq(x, sample.list, covars,
         which.plot = c("biodetection", "countsbio", "saturation", "rnacomp", 
-                "biodist"),
+               "readnoise", "biodist"),
         output = "x11",
         biodist.opts = list(p = NULL, pcut = NULL, name = NULL),
         path = NULL, is.norm = FALSE, ...)

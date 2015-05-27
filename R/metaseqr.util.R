@@ -2177,7 +2177,7 @@ make.report.messages <- function(lang) {
                     log2="log2 scale",
                     log10="log10 scale",
                     vst="Variance stabilization transformation",
-					rpgm="Reads per Gene Model",
+                    rpgm="Reads per Gene Model",
                     raw="Raw values",
                     normalized="Normalized values",
                     mean="Mean",
@@ -2801,11 +2801,11 @@ make.report.messages <- function(lang) {
 #' @param a Alternative names for each point.
 #' @return A list that is later serialized to JSON.
 #' @author Panagiotis Moulos
-make.highcharts.points <- function(x,y,a) {
+make.highcharts.points <- function(x,y,a=NULL) {
     if (length(x)>0) {
         n <- names(x)
         x <- unname(x)
-        y <- unname(-log10(y))
+        y <- unname(y)
         stru <- vector("list",length(x))
         if (is.null(a)) {
             for (i in 1:length(x))

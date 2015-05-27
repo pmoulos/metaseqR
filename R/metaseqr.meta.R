@@ -46,7 +46,7 @@ meta.test <- function(cp.list,meta.p=c("simes","bonferroni","fisher",
     reprod=TRUE,multic=FALSE) {
     check.text.args("meta.p",meta.p,c("simes","bonferroni","fisher","dperm.min",
         "dperm.max","dperm.weight","fperm","whitlock","minp","maxp","weight",
-        "none"))
+        "pandora","none"))
     contrast <- names(cp.list)
     disp("Performing meta-analysis with ",meta.p)
     if (meta.p=="pandora")

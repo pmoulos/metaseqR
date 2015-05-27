@@ -16,8 +16,11 @@
     the biological condition where each of the samples 
     in the first column should belong to. There is an 
     optional fourth column which should contain the 
-    keywords \code{"single"} for single-end reads or 
-    \code{"paired"} for paired-end reads. If this 
+    keywords \code{"single"} for single-end reads,  
+    \code{"paired"} for paired-end reads or 
+    \code{"mixed"} for BAM files that contain both 
+    single- and paired-end reads (e.g. after a mapping
+    procedure with two round of alignment). If this 
     column is not provided, single-end reads will be 
     assumed. There is an optional fifth column which 
     stranded read assignment. It should contain the 
