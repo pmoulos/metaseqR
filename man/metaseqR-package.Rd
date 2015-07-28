@@ -10,8 +10,8 @@
 }
 \details{
     \tabular{ll}{ Package: \tab metaseqR\cr Type: \tab
-    Package\cr Version: \tab 0.99.1\cr Date: \tab
-    2014-03-11\cr Depends: \tab R (>= 2.13.0), EDASeq,
+    Package\cr Version: \tab 1.9.1\cr Date: \tab
+    2015-07-27\cr Depends: \tab R (>= 2.13.0), EDASeq,
     DESeq, limma, NOISeq, baySeq\cr Encoding: \tab UTF-8\cr
     License: \tab GPL (>= 3)\cr LazyLoad: \tab yes\cr
     URL: \tab http://www.fleming.gr\cr }

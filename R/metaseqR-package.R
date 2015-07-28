@@ -4,10 +4,10 @@
 #' \tabular{ll}{
 #' Package: \tab metaseqR\cr
 #' Type: \tab Package\cr
-#' Version: \tab 1.9.0\cr
-#' Date: \tab 2015-05-27\cr
+#' Version: \tab 1.9.1\cr
+#' Date: \tab 2015-07-27\cr
 #' Depends: \tab R (>= 2.13.0), Biobase, BiocGenerics, rjson, biomaRt, utils,
-#' knitr, EDASeq, DESeq, edgeR, limma, NOISeq, baySeq, NBPSeq, MADAM, survcomp,
+#' knitr, EDASeq, DESeq, edgeR, limma, NOISeq, baySeq, NBPSeq, survcomp,
 #' brew, gplots, corrplot, GenomicRanges, Rsamtools, rtracklayer, Repitools,
 #' qvalue, vsn, VennDiagram, log4r\cr
 #' Encoding: \tab UTF-8\cr

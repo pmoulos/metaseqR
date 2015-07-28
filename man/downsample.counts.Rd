@@ -22,15 +22,13 @@
     2013).
 }
 \examples{
-\donttest{
-# Dowload locally the file "bottomly_count_table.txt" from
-# the ReCount database
-download.file(paste("http://bowtie-bio.sourceforge.net/",
-    "recount/countTables/bottomly_count_table.txt",sep=""),
-    destfile="~/bottomly_count_table.txt")
-M <- as.matrix(read.delim("~/bottomly_count_table.txt",row.names=1))
-D <- downsample.counts(M)
-}
+## Dowload locally the file "bottomly_count_table.txt" from
+## the ReCount database
+#download.file(paste("http://bowtie-bio.sourceforge.net/",
+#    "recount/countTables/bottomly_count_table.txt",sep=""),
+#    destfile="~/bottomly_count_table.txt")
+#M <- as.matrix(read.delim("~/bottomly_count_table.txt",row.names=1))
+#D <- downsample.counts(M)
 }
 \author{
     Panagiotis Moulos

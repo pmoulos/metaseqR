@@ -312,11 +312,9 @@
     for Benjamini-Hochberg correction.}
 
     \item{meta.p}{the meta-analysis method to combine
-    p-values from multiple statistical tests 
-    \strong{(experimental! see also the second note below,
-    regarding meta-analysis)}. It can be one of \code{"simes"}
-    (default), \code{"bonferroni"}, \code{"minp"}, 
-    \code{"maxp"}, \code{"weight"}, \code{"pandora"}, 
+    p-values from multiple statistical tests . It can be 
+    one of \code{"simes"} (default), \code{"bonferroni"}, 
+    \code{"minp"}, \code{"maxp"}, \code{"weight"}, \code{"pandora"}, 
     \code{"dperm.min"}, \code{"dperm.max"}, \code{"dperm.weight"}, 
     \code{"fisher"}, \code{"fperm"}, \code{"whitlock"} or 
     \code{"none"}. For the \code{"fisher"} and \code{"fperm"} 
@@ -500,13 +498,13 @@
     more of \code{"natural"}, \code{"log2"}, \code{"log10"},
     \code{"vst"} (Variance Stabilizing Transormation, see the
     documentation of DESeq package) and \code{"rpgm"} which
-	is ratio of mapped reads per gene model (either the gene
-	length or the sum of exon lengths, depending on 
-	\code{count.type} argument). Note that this is not RPKM
-	as reads are already normalized for library size using 
-	one of the supported normalization methods. Also, 
-	\code{"rpgm"} might be misleading when \code{normalization} 
-	is other than \code{"deseq"}.}
+    is ratio of mapped reads per gene model (either the gene
+    length or the sum of exon lengths, depending on 
+    \code{count.type} argument). Note that this is not RPKM
+    as reads are already normalized for library size using 
+    one of the supported normalization methods. Also, 
+    \code{"rpgm"} might be misleading when \code{normalization} 
+    is other than \code{"deseq"}.}
 
     \item{export.values}{It can be one or more of
     \code{"raw"} to export raw values (counts etc.) and
@@ -624,13 +622,13 @@
 }
 \note{
     Please note that currently only gene and exon annotation
-    from Ensembl (http://www.ensembl.org) are supported.
-    Thus, the unique gene or exon ids in the counts files
-    should correspond to valid Ensembl gene or exon
-    accessions for the organism of interest. If you are not
-    sure about the source of your counts file or do not know
-    how to produce it, it's better to start from the original
-    BAM/BED files (metaseqr will use the
+    from Ensembl (http://www.ensembl.org), UCSC and RefSeq 
+    are supported. Thus, the unique gene or exon ids in the 
+    counts files should correspond to valid Ensembl, UCSC or 
+    RefSeq gene or exon accessions for the organism of interest. 
+    If you are not sure about the source of your counts file or 
+    do not know how to produce it, it's better to start from the 
+    original BAM/BED files (metaseqr will use the
     \code{\link{read2count}} function to create a counts
     file). Keep in mind that in the case of BED files, the
     performance will be significantly lower and the overall
@@ -667,16 +665,11 @@
     use these files with the \code{annotation} option.
 
     Please note that the \strong{meta-analysis} feature
-    provided by metaseqr is currently experimental and does
-    not satisfy the strict definition of "meta-analysis",
-    which is the combination of multiple similar datasets
-    under the same statistical methodology. Instead it is the
-    use of mulitple statistical tests applied to the same
-    data so the results at this point are not guaranteed and
-    should be interpreted appropriately. We are working on a
-    more solid methodology for combining multiple statistical
-    tests based on multiple testing correction and Monte
-    Carlo methods. For the Simes method, please consult also
+    provided by metaseqr does not satisfy the strict definition 
+    of "meta-analysis", which is the combination of multiple 
+    similar datasets under the same statistical methodology. 
+    Instead it is the use of mulitple statistical tests applied 
+    to the same data. For the Simes method, please consult also
     "Simes, R. J. (1986). "An improved Bonferroni procedure
     for multiple tests of significance". Biometrika 73 (3):
     751–754."

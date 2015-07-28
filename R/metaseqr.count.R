@@ -219,8 +219,18 @@ read2count <- function(targets,annotation,file.type=targets$type,
             }
             else
                 ignore.strand <- TRUE
-            bam <- BamFile(sample.files[n],asMates=asMates)
-            libsize <- countBam(bam)$records
+            # Check remoteness
+            if (length(grep("^(http|ftp)",sample.files[n],perl=TRUE))>=1) {
+                reads <- as(readGAlignments(file=sample.files[n]),"GRanges")
+                libsize <- length(reads)
+                is.remote <- TRUE
+            }
+            else {
+                reads <- BamFile(sample.files[n],asMates=asMates)
+                libsize <- countBam(reads,
+                param=ScanBamParam(scanBamFlag(isUnmappedQuery=FALSE)))$records
+                is.remote <- FALSE
+            }
             if (libsize>0) {
                 disp("  Counting reads overlapping with given annotation...")
                 if (singleEnd & !fragments)
@@ -237,7 +247,9 @@ read2count <- function(targets,annotation,file.type=targets$type,
                         strand(annotation.gr) <- ifelse(strand(
                             annotation.gr)=="+","-","+")
                 }
-                counts <- summarizeOverlaps(annotation.gr,bam,
+                if (is.remote)
+                    disp("    ...for remote BAM file... might take longer...")
+                counts <- summarizeOverlaps(annotation.gr,reads,
                     singleEnd=singleEnd,fragments=fragments,
                     ignore.strand=ignore.strand)
                 counts <- assays(counts)$counts

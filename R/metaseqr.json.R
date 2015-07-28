@@ -647,7 +647,6 @@ bioDetectionToJSON <- function(obj,jl=c("highcharts")) {
     status <- obj$status
     plotdata <- obj$user$plotdata
     covars <- obj$user$covars
-    biotypes <- unique(as.character(covars$biotype))
     
     if (!is.null(samples)&& is.list(samples)) {
         samplenames <- unlist(samples,use.names=FALSE)
@@ -655,40 +654,73 @@ bioDetectionToJSON <- function(obj,jl=c("highcharts")) {
     }
     # Otherwise we are using the names present in the input object
     
+    abu <- which(plotdata$genome>7)
+    nabu <- which(plotdata$genome<=7)
+    
     cols <- getColorScheme()
-    bar.list <- json <- vector("list",length(samplenames))
-    names(bar.list) <- names(json) <- samplenames
+    json <- vector("list",length(samplenames))
+    names(json) <- samplenames
     for (n in samplenames) {
         # Data series
-        series <- vector("list",3)
-        names(series) <- c("genome","detectionVSgenome","detectionVSsample")
-        series$genome <- list()
-        series$genome$name <- "% in genome"
-        series$genome$color <- cols$trans[1]
-        series$genome$pointPlacement <- -0.2
-        series$genome$data <- round(as.numeric(plotdata$genome),3)
-        #series$genome$tooltip <- ""
-        series$detectionVSgenome <- list()
-        series$detectionVSgenome$name <- "% detected"
-        series$detectionVSgenome$color <- cols$trans[2]
-        series$detectionVSgenome$pointPlacement <- 0
-        series$detectionVSgenome$data <- round(as.numeric(
-            plotdata$biotables[[n]][1,]),3)
-        #series$detectionVSgenome$tooltip
-        series$detectionVSsample <- list()
-        series$detectionVSsample$name <- "% in sample"
-        series$detectionVSsample$color <- cols$trans[3]
-        series$detectionVSsample$pointPlacement <- 0.2
-        series$detectionVSsample$data <- round(as.numeric(
-            plotdata$biotables[[n]][2,]),3)
-        #series$detectionVSsample$tooltip
+        series.abu <- vector("list",3)
+        names(series.abu) <- c("genome","detectionVSgenome","detectionVSsample")
+        series.abu$genome <- list()
+        series.abu$genome$id <- "abu_genome"
+        series.abu$genome$name <- "% in genome"
+        series.abu$genome$color <- cols$trans[1]
+        series.abu$genome$pointPlacement <- -0.2
+        series.abu$genome$data <- round(as.numeric(plotdata$genome[abu]),3)
+        series.abu$detectionVSgenome <- list()
+        series.abu$detectionVSgenome$id <- "abu_detected"
+        series.abu$detectionVSgenome$name <- "% detected"
+        series.abu$detectionVSgenome$color <- cols$trans[2]
+        series.abu$detectionVSgenome$pointPlacement <- 0
+        series.abu$detectionVSgenome$data <- round(as.numeric(
+            plotdata$biotables[[n]][1,abu]),3)
+        series.abu$detectionVSsample <- list()
+        series.abu$detectionVSsample$id <- "abu_sample"
+        series.abu$detectionVSsample$name <- "% in sample"
+        series.abu$detectionVSsample$color <- cols$trans[3]
+        series.abu$detectionVSsample$pointPlacement <- 0.2
+        series.abu$detectionVSsample$data <- round(as.numeric(
+            plotdata$biotables[[n]][2,abu]),3)
+        series.nabu <- vector("list",3)
+        names(series.nabu) <- c("genome","detectionVSgenome",
+            "detectionVSsample")
+        series.nabu$genome <- list()
+        series.nabu$genome$name <- "% in genome"
+        series.nabu$genome$yAxis <- 1
+        series.nabu$genome$pointStart <- length(abu)
+        series.nabu$genome$linkedTo <- "abu_genome"
+        series.nabu$genome$color <- cols$trans[1]
+        series.nabu$genome$pointPlacement <- -0.2
+        series.nabu$genome$data <- round(as.numeric(plotdata$genome[nabu]),3)
+        series.nabu$detectionVSgenome <- list()
+        series.nabu$detectionVSgenome$name <- "% detected"
+        series.nabu$detectionVSgenome$yAxis <- 1
+        series.nabu$detectionVSgenome$pointStart <- length(abu)
+        series.nabu$detectionVSgenome$linkedTo <- "abu_detected"
+        series.nabu$detectionVSgenome$color <- cols$trans[2]
+        series.nabu$detectionVSgenome$pointPlacement <- 0
+        series.nabu$detectionVSgenome$data <- round(as.numeric(
+            plotdata$biotables[[n]][1,nabu]),3)
+        series.nabu$detectionVSsample <- list()
+        series.nabu$detectionVSsample$name <- "% in sample"
+        series.nabu$detectionVSsample$yAxis <- 1
+        series.nabu$detectionVSsample$pointStart <- length(abu)
+        series.nabu$detectionVSsample$linkedTo <- "abu_sample"
+        series.nabu$detectionVSsample$color <- cols$trans[3]
+        series.nabu$detectionVSsample$pointPlacement <- 0.2
+        series.nabu$detectionVSsample$data <- round(as.numeric(
+            plotdata$biotables[[n]][2,nabu]),3)
         
         json[[n]] <- switch(jl,
             highcharts = {
                 toJSON(
                     list(
                         chart=list(
-                            type="column"
+                            type="column",
+                            alignTicks=FALSE
                         ),
                         title=list(
                             text=paste("Comparative biotype detection for ",
@@ -704,7 +736,7 @@ bioDetectionToJSON <- function(obj,jl=c("highcharts")) {
                             shared=TRUE
                         ),  
                         xAxis=list(
-                            categories=biotypes,
+                            categories=names(plotdata$genome)[c(abu,nabu)],
                             title=list(
                                 text="Biotype",
                                 margin=25,
@@ -718,18 +750,38 @@ bioDetectionToJSON <- function(obj,jl=c("highcharts")) {
                                     color="#000000",
                                     fontWeight="bold"
                                 )
+                            ),
+                            plotLines=list(
+                                list(
+                                    color="#8A8A8A",
+                                    width=1.5,
+                                    dashStyle="Dash",
+                                    value=length(abu)-0.5
+                                )
+                            ),
+                            plotBands=list(
+                                list(
+                                    color="#FFFFE0",
+                                    from=-0.5,
+                                    to=length(abu)-0.5
+                                ),
+                                list(
+                                    color="#FFECEB",
+                                    from=length(abu)-0.5,
+                                    to=length(plotdata$genome)
+                                )
                             )
                         ),
                         yAxis=list(
                             list(
                                 min=0,
-                                max=80,
+                                max=70,
                                 title=list(
                                     text="% of abundant features",
                                     margin=20,
                                     style=list(
                                         color="#000000",
-                                        fontSize="1.1em"
+                                        fontSize="1.2em"
                                     )
                                 ),                          
                                 labels=list(
@@ -742,13 +794,13 @@ bioDetectionToJSON <- function(obj,jl=c("highcharts")) {
                             ),
                             list(
                                 min=0,
-                                max=10,
+                                max=7,
                                 title=list(
                                     text="% of non-abundant features",
                                     margin=20,
                                     style=list(
                                         color="#000000",
-                                        fontSize="1.1em"
+                                        fontSize="1.2em"
                                     )
                                 ),                          
                                 labels=list(
@@ -776,7 +828,7 @@ bioDetectionToJSON <- function(obj,jl=c("highcharts")) {
                                 )
                             )
                         ),
-                        series=unname(series)
+                        series=c(unname(series.abu),unname(series.nabu))
                     )
                 )
             }
@@ -784,6 +836,271 @@ bioDetectionToJSON <- function(obj,jl=c("highcharts")) {
     }
     return(json)
 }
+
+#' Biotype saturation plot JSON exporter for the metaseqR package
+#'
+#' Non-exportable JSON exporter for \code{\link{diaplot.noiseq}}.
+#'
+#' @param obj A list holding boxplot data. See \code{\link{diaplot.noiseq}}.
+#' @param by Can be \code{"sample"} to create biotypes boxplots per sample or
+#' \code{"biotype"} to create samples boxplots per biotype.
+#' @param jl JavaScript charting library to export. Currently only \code{"highcharts"}
+#' supported.
+#' @return A JSON string.
+#' @author Panagiotis Moulos
+bioSaturationToJSON <- function(obj,by=c("sample","biotype"),
+    jl=c("highcharts")) {
+    
+    by <- tolower(by[1])
+    jl <- tolower(jl[1])
+    samples <- obj$samples
+    plotdata <- obj$user$plotdata
+    
+    if (!is.null(samples)&& is.list(samples)) {
+        samplenames <- unlist(samples,use.names=FALSE)
+        names(plotdata) <- samplenames
+    }
+    
+    if (by=="sample") {
+        json <- vector("list",length(samplenames))
+        names(json) <- samplenames
+        for (n in samplenames) {
+            depth <- round(plotdata[[n]][,1]/1e+6)
+            global <- round(plotdata[[n]][,2])
+            M <- plotdata[[n]][,3:ncol(plotdata[[n]])]
+            
+            # To determine the separation
+            ord <- sort(M[nrow(M),],decreasing=TRUE,index.return=TRUE)
+            abu <- ord$ix[1:2]
+            names(abu) <- names(ord$x[1:2])
+            nabu <- ord$ix[3:length(ord$ix)]
+            names(nabu) <- names(ord$x[3:length(ord$x)])
+    
+            cols <- getColorScheme(ncol(plotdata[[n]])-1)
+            counter <- 1
+            
+            global.series <- list(
+                global=list(
+                    id="global",
+                    name="global",
+                    color=cols$fill[counter],
+                    data=make.highcharts.points(depth,global)
+                )
+            )
+            
+            abu.series <- vector("list",2)
+            names(abu.series) <- names(abu)
+            for (s in names(abu.series)) {
+                counter <- counter + 1
+                abu.series[[s]] <- list()
+                abu.series[[s]]$id <- s
+                abu.series[[s]]$name <- s
+                abu.series[[s]]$color <- cols$fill[counter]
+                abu.series[[s]]$data <- make.highcharts.points(depth,
+                    round(M[,s]))
+            }
+            
+            nabu.series <- vector("list",length(3:ncol(M)))
+            names(nabu.series) <- names(nabu)
+            for (s in names(nabu.series)) {
+                counter <- counter + 1
+                nabu.series[[s]] <- list()
+                nabu.series[[s]]$id <- s
+                nabu.series[[s]]$name <- s
+                nabu.series[[s]]$color <- cols$fill[counter]
+                nabu.series[[s]]$data <- make.highcharts.points(depth,
+                    round(M[,s]))
+            }
+            
+            json[[n]] <- switch(jl,
+                highcharts = {
+                    toJSON(
+                        list(
+                            chart=list(
+                                type="scatter",
+                                zoomType="xy"
+                            ),
+                            title=list(
+                                text=paste("Biotype saturations for sample ",n,
+                                    sep="")
+                            ),
+                            legend=list(
+                                enabled=TRUE,
+                                itemHoverStyle=list(
+                                    color="#B40000"
+                                )
+                            ),
+                            xAxis=list(
+                                title=list(
+                                    text="Read depth (millions of reads)",
+                                    margin=25,
+                                    style=list(
+                                        color="#000000",
+                                        fontSize="1.2em"
+                                    )
+                                ),
+                                labels=list(
+                                    style=list(
+                                        color="#000000",
+                                        fontWeight="bold"
+                                    )
+                                )
+                            ),
+                            yAxis=list(
+                                min=0,
+                                max=max(global),
+                                title=list(
+                                    text="Detected features",
+                                    margin=25,
+                                    style=list(
+                                        color="#000000",
+                                        fontSize="1.2em"
+                                    )
+                                ),
+                                labels=list(
+                                    style=list(
+                                        color="#000000",
+                                        fontSize="1.1em",
+                                        fontWeight="bold"
+                                    )
+                                )
+                            ),
+                            plotOptions=list(
+                                series=list(
+                                    lineWidth=2
+                                ),
+                                scatter=list(
+                                    tooltip=list(
+                                        headerFormat=paste(
+                                            '<span style="font-weight:bold;',
+                                            'color:{series.color};">',
+                                            '\u25CF </span>',
+                                            '<span style="font-weight:bold">',
+                                            'Biotype {series.name}</span><br/>',
+                                            sep=""
+                                        ),
+                                        pointFormat=paste(
+                                            "Depth: {point.x}M<br/>",
+                                            "Detected features: {point.y}",
+                                            sep="")
+                                    )
+                                )
+                            ),
+                            series=c(unname(global.series),
+                                unname(abu.series),unname(nabu.series))
+                        )
+                    )
+                }
+            )
+        }
+        return(json)
+    }
+    else if (by=="biotype") {
+        biotypes <- colnames(plotdata[[1]])[2:ncol(plotdata[[1]])]
+        depths <- vector("list",length(plotdata))
+        names(depths) <- samplenames
+        for (n in samplenames)
+            depths[[n]] <- round(plotdata[[n]][,1]/1e+6)
+        json <- vector("list",length(biotypes))
+        names(json) <- biotypes
+        
+        for (b in biotypes) {
+            series <- vector("list",length(plotdata))
+            names(series) <- samplenames
+            cols <- getColorScheme(length(samplenames))
+            counter <- 0
+            for (s in names(series)) {
+                counter <- counter + 1
+                series[[s]] <- list()
+                series[[s]]$id <- s
+                series[[s]]$name <- s
+                series[[s]]$color <- cols$fill[counter]
+                series[[s]]$data <- make.highcharts.points(depths[[s]],
+                    round(plotdata[[s]][,b]))
+            }
+            
+            json[[b]] <- switch(jl,
+                highcharts = {
+                    toJSON(
+                        list(
+                            chart=list(
+                                type="scatter",
+                                zoomType="xy"
+                            ),
+                            title=list(
+                                text=paste("Sample saturations for biotype ",b,
+                                    sep="")
+                            ),
+                            legend=list(
+                                enabled=TRUE,
+                                itemHoverStyle=list(
+                                    color="#B40000"
+                                )
+                            ),
+                            xAxis=list(
+                                title=list(
+                                    text="Read depth (millions of reads)",
+                                    margin=25,
+                                    style=list(
+                                        color="#000000",
+                                        fontSize="1.2em"
+                                    )
+                                ),
+                                labels=list(
+                                    style=list(
+                                        color="#000000",
+                                        fontWeight="bold"
+                                    )
+                                )
+                            ),
+                            yAxis=list(
+                                title=list(
+                                    text="Detected features",
+                                    margin=25,
+                                    style=list(
+                                        color="#000000",
+                                        fontSize="1.2em"
+                                    )
+                                ),
+                                labels=list(
+                                    style=list(
+                                        color="#000000",
+                                        fontSize="1.1em",
+                                        fontWeight="bold"
+                                    )
+                                )
+                            ),
+                            plotOptions=list(
+                                series=list(
+                                    lineWidth=2
+                                ),
+                                scatter=list(
+                                    tooltip=list(
+                                        headerFormat=paste(
+                                            '<span style="font-weight:bold;',
+                                            'color:{series.color};">',
+                                            '\u25CF </span>',
+                                            '<span style="font-weight:bold">',
+                                            'Sample {series.name}</span><br/>',
+                                            sep=""
+                                        ),
+                                        pointFormat=paste(
+                                            "Depth: {point.x}M<br/>",
+                                            "Detected features: {point.y}",
+                                            sep="")
+                                    )
+                                )
+                            ),
+                            series=c(unname(series))
+                        )
+                    )
+                }
+            )
+        }
+        return(json)
+    }
+}
+
 
 #' Read noise plot JSON exporter for the metaseqR package
 #'
@@ -794,13 +1111,14 @@ bioDetectionToJSON <- function(obj,jl=c("highcharts")) {
 #' supported.
 #' @return A JSON string.
 #' @author Panagiotis Moulos
-readNoiseToJSON <- function(obj,jl=c("highcharts")) {
+readNoiseToJSON <- function(obj,jl=c("highcharts"),seed=42) {
     jl <- tolower(jl[1])
     d <- obj$user
     samples <- obj$samples
     
     # Too many points for a lot of curves of interactive data
     if (nrow(d)>1000) {
+        set.seed(seed)
         ii <- sort(sample(1:nrow(d),998))
         ii <- c(1,ii,nrow(d))
         d <- cbind(d[ii,1],d[ii,2:ncol(d)])
@@ -845,7 +1163,6 @@ readNoiseToJSON <- function(obj,jl=c("highcharts")) {
                         text=paste("RNA-Seq mapped reads noise")
                     ),
                     xAxis=list(
-                        useHTML=TRUE,
                         title=list(
                             text="% detected features",
                             margin=20,
@@ -869,7 +1186,6 @@ readNoiseToJSON <- function(obj,jl=c("highcharts")) {
                         max=100
                     ),
                     yAxis=list(
-                        useHTML=TRUE,
                         title=list(
                             text="% of total reads",
                             margin=25,
@@ -1163,6 +1479,328 @@ boxplotToJSON <- function(obj,jl=c("highcharts")) {
     return(unquote_js_fun(json))
 }
 
+#' GC/length bias plot JSON exporter for the metaseqR package
+#'
+#' Non-exportable JSON exporter for \code{\link{diagplot.edaseq}}.
+#'
+#' @param obj A list holding plot data. See \code{\link{diaplot.noiseq}}.
+#' @param jl JavaScript charting library to export. Currently only \code{"highcharts"}
+#' supported.
+#' @return A JSON string.
+#' @author Panagiotis Moulos
+biasPlotToJSON <- function(obj,jl=c("highcharts"),seed=1) {
+    jl <- tolower(jl[1])
+    counts <- round(nat2log(obj$user$counts),3)
+    status <- obj$status
+    covar <- obj$user$covar
+    covarname <- obj$user$covarname
+    samples <- obj$samples
+    
+    # Too many points for a lot of curves of interactive data
+    if (nrow(counts)>2000) {
+        set.seed(seed)
+        ii <- sample(1:nrow(counts),2000)
+        counts <- counts[ii,]
+        covar <- covar[ii]
+    }
+    
+    # If length bias, not nice to have x-axis at -200k
+    min.x <- ifelse(max(covar>100),0,"undefined")
+
+    if (is.null(samples)) {
+        if (is.null(colnames(x)))
+            samplenames <- paste("Sample",1:ncol(counts),sep=" ")
+        else
+            samplenames <- colnames(counts)
+        samples <- list(Samples=nams)
+        cols <- getColorScheme(length(samples))
+    }
+    else if (is.list(samples)) { # Is sample.list
+        samplenames <- unlist(samples,use.names=FALSE)
+        grouped <- TRUE
+    }
+    colnames(counts) <- samplenames
+    
+    # Construct series
+    counter <- 0
+    series <- vector("list",length(samplenames))
+    names(series) <- samplenames
+    for (n in names(series)) {
+        counter <- counter + 1
+        x <- counts[,n]
+        fit <- lowess(covar,x)
+        series[[n]] <- list()
+        series[[n]]$name <- n
+        series[[n]]$color <- cols$fill[counter]
+        series[[n]]$data <- lapply(1:length(x),function(i,x,y) {
+            return(c(x[i],y[i])) },round(fit$x,3),round(fit$y,3))
+    }
+    
+    switch(jl,
+        highcharts = {
+                json <- toJSON(list(
+                    chart=list(
+                        type="line",
+                        zoomType="xy"
+                    ),
+                    title=list(
+                        text=paste(covarname," bias detection - ",status)
+                    ),
+                    xAxis=list(
+                        min=min.x,
+                        title=list(
+                            text=covarname,
+                            margin=20,
+                            style=list(
+                                color="#000000",
+                                fontSize="1.2em"
+                            )
+                        ),
+                        labels=list(
+                            style=list(
+                                color="#000000",
+                                fontSize="1.1em",
+                                fontWeight="bold"
+                            )
+                        ),
+                        startOnTick=TRUE,
+                        endOnTick=TRUE,
+                        showLastLabel=TRUE
+                    ),
+                    yAxis=list(
+                        title=list(
+                            useHTML=TRUE,
+                            text="Read count (log<sub>2</sub>)",
+                            margin=25,
+                            style=list(
+                                color="#000000",
+                                fontSize="1.2em"
+                            )
+                        ),
+                        labels=list(
+                            style=list(
+                                color="#000000",
+                                fontSize="1.1em",
+                                fontWeight="bold"
+                            )
+                        ),
+                        startOnTick=TRUE,
+                        endOnTick=TRUE,
+                        showLastLabel=TRUE
+                    ),
+                    plotOptions=list(
+                        line=list(
+                            marker=list(
+                                enabled=FALSE,
+                                states=list(
+                                    hover=list(
+                                        enabled=FALSE
+                                    )
+                                )
+                            ),
+                            tooltip=list(
+                                headerFormat=paste("<span style=",
+                                    "\"font-size:1.1em;color:{series.color};",
+                                    "font-weight:bold\">{series.name}<br>",
+                                    sep=""),
+                                pointFormat=NULL
+                            ),
+                            turboThreshold=50000
+                        )
+                    ),
+                    series=unname(series)
+                )
+            )
+        }
+    )
+    return(json)
+}
+
+#' Filtered genes barplot JSON exporter for the metaseqR package
+#'
+#' Non-exportable JSON exporter for \code{\link{diaplot.filtered}}.
+#'
+#' @param obj A list holding plot data. See \code{\link{diaplot.filered}}.
+#' @param by Either \code{"chromosome"} or \code{"biotype"}
+#' @param jl JavaScript charting library to export. Currently only \code{"highcharts"}
+#' supported.
+#' @return A JSON string.
+#' @author Panagiotis Moulos
+filteredToJSON <- function(obj,by=c("chromosome","biotype"),
+    jl=c("highcharts")) {
+    
+    jl <- tolower(jl[1])
+    by <- tolower(by[1])
+    filtered <- obj$user$filtered
+    total <- obj$user$total
+    cols <- getColorScheme(2)
+    
+    if (by=="chromosome") {
+        chr <- table(as.character(filtered$chromosome))
+        chr.all <- table(as.character(total$chromosome))
+        barlab.chr <- as.character(chr)        
+        per.chr <- round(chr/chr.all[names(chr)],3)
+        per.chr[per.chr>1] <- 1
+        
+        series <- vector("list",2)
+        names(series) <- c("number","fraction")
+                
+        series$number <- list()
+        series$number$id <- "chr_number"
+        series$number$name <- "Number of genes"
+        series$number$color <- cols$fill[1]
+        series$number$pointPlacement <- -0.2
+        series$number$data <- unname(chr)
+        
+        series$fraction <- list()
+        series$fraction$id <- "chr_fraction"
+        series$fraction$name <- "Fraction of total genes"
+        series$fraction$color <- cols$fill[2]
+        series$fraction$pointPlacement <- 0.2
+        series$fraction$yAxis <- 1
+        series$fraction$data <- unname(per.chr)
+        
+        what <- chr
+    }
+    else if (by=="biotype") {
+        bt <- table(as.character(filtered$biotype))
+        bt.all <- table(as.character(total$biotype))
+        barlab.bt <- as.character(bt)
+        per.bt <- round(bt/bt.all[names(bt)],3)
+        per.bt[per.bt>1] <- 1
+        
+        series <- vector("list",2)
+        names(series) <- c("number","fraction")
+                
+        series$number <- list()
+        series$number$id <- "bt_number"
+        series$number$name <- "Number of genes"
+        series$number$color <- cols$fill[1]
+        series$number$pointPlacement <- -0.2
+        series$number$data <- unname(bt)
+        
+        series$fraction <- list()
+        series$fraction$id <- "bt_fraction"
+        series$fraction$name <- "Fraction of total genes"
+        series$fraction$color <- cols$fill[2]
+        series$fraction$pointPlacement <- 0.2
+        series$fraction$yAxis <- 1
+        series$fraction$data <- unname(per.bt)
+        
+        what <- bt
+    }
+    
+    json <- switch(jl,
+        highcharts = {
+            toJSON(
+                list(
+                    chart=list(
+                        type="column",
+                        alignTicks=FALSE
+                    ),
+                    title=list(
+                        text=paste("Filtered genes per ",by,sep="")
+                    ),
+                    legend=list(
+                        enabled=TRUE,
+                        itemHoverStyle=list(
+                            color="#B40000"
+                        )
+                    ),
+                    tooltip=list(
+                        shared=TRUE
+                    ),
+                    xAxis=list(
+                        categories=names(what),
+                        title=list(
+                            text=paste(toupper(substr(by,1,1)),substr(by,2,
+                                nchar(by)),sep=""),
+                            margin=25,
+                            style=list(
+                                color="#000000",
+                                fontSize="1.2em"
+                            )
+                        ),
+                        labels=list(
+                            style=list(
+                                color="#000000",
+                                fontWeight="bold"
+                            )
+                        )
+                    ),
+                    yAxis=list(
+                        list(
+                            lineColor=cols$fill[1],
+                            lineWidth=2,
+                            min=0,
+                            tickAmount=11,
+                            title=list(
+                                text="Number of genes",
+                                margin=20,
+                                style=list(
+                                    color="#000000",
+                                    fontSize="1.2em"
+                                )
+                            ),                 
+                            labels=list(
+                                style=list(
+                                    color="#000000",
+                                    fontSize="1.1em",
+                                    fontWeight="bold"
+                                )
+                            ),
+                            offset=10
+                        ),
+                        list(
+                            lineColor=cols$fill[2],
+                            lineWidth=2,
+                            min=0,
+                            max=1,
+                            tickAmount=11,
+                            #tickInterval=0.1,
+                            title=list(
+                                text="Fraction of total genes",
+                                margin=20,
+                                style=list(
+                                    color="#000000",
+                                    fontSize="1.2em"
+                                )
+                            ),                          
+                            labels=list(
+                                style=list(
+                                    color="#000000",
+                                    fontSize="1.1em",
+                                    fontWeight="bold"
+                                )
+                            ),
+                            opposite=TRUE,
+                            offset=10
+                        )
+                    ),
+                    plotOptions=list(
+                        column=list(
+                            grouping=FALSE,
+                            shadow=FALSE,
+                            groupPadding=0.2,
+                            pointPadding=0.2,
+                            tooltip=list(
+                                headerFormat=paste(
+                                    '<span style="font-size:1.1em;',
+                                    'font-weight:bold">',
+                                    '{point.key}</span><br/>',sep=""
+                                )
+                            )
+                        )
+                    ),
+                    series=c(unname(series))
+                )
+            )
+        }
+    )
+    
+    return(json)
+}
+
 #' Volcano JSON exporter for the metaseqR package
 #'
 #' Non-exportable JSON exporter for \code{\link{diagplot.volcano}}.
@@ -1396,6 +2034,15 @@ unquote_js_fun <- function(js) {
         }
     }
     return(js)
+}
+
+getGroupColorScheme <- function(group) {
+    cols <- getColorScheme(length(group))
+    classes <- as.factor(as.class.vector(group))
+    design <- as.numeric(classes)
+    return(lapply(cols,function(x,classes,design) {
+        return(x[1:length(levels(classes))][design])
+    },classes,design))
 }
 
 getColorScheme <- function(n=NULL) {

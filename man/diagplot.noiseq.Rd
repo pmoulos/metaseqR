@@ -78,7 +78,6 @@
     but it's still possible that you might run onto an error.
 }
 \examples{
-\donttest{
 require(DESeq)
 data.matrix <- counts(makeExampleCountDataSet())
 sample.list <- list(A=c("A1","A2"),B=c("B1","B2","B3"))
@@ -102,7 +101,6 @@ covars <- list(
 p <- runif(nrow(data.matrix))
 diagplot.noiseq(data.matrix,sample.list,covars=covars,
         biodist.opts=list(p=p,pcut=0.1,name="A_vs_B"))
-}
 }
 \author{
     Panagiotis Moulos

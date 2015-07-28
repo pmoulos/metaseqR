@@ -39,11 +39,9 @@
     column.
 }
 \examples{
-\donttest{
 y <- get.annotation("mm9","gene")
 x <- y[-sample(1:nrow(y),10000),]
 diagplot.filtered(x,y)
-}
 }
 \author{
     Panagiotis Moulos

@@ -1510,6 +1510,56 @@ make.fold.change <- function(contrast,sample.list,data.matrix,log.offset=1) {
     return(fold.mat)
 }
 
+#' Calculates average expression for an MA plot
+#'
+#' Returns a matrix of average expressions (A in MA plot) based on the requested 
+#' contrast, the list of all samples and the data matrix which is produced by 
+#' the metaseqr workflow. For details on the \code{contrast}, \code{sample.list} 
+#' and \code{log.offset} parameters, see the main usage page of metaseqr. 
+#' This function is intended mostly for internal use but can also be used 
+#' independently.
+#'
+#' @param contrast the vector of requested statistical comparison contrasts.
+#' @param sample.list the list containing condition names and the samples under
+#' each condition.
+#' @param data.matrix a matrix of gene expression data whose column names are the
+#' same as the sample names included in the sample list.
+#' @param log.offset a number to be added to each element of data matrix in order
+#' to avoid Infinity on log type data transformations.
+#' @return A matrix of fold change ratios, treatment to control, as these are
+#' parsed from contrast.
+#' @export
+#' @author Panagiotis Moulos
+#' @examples
+#' \dontrun{
+#' data.matrix <- round(1000*matrix(runif(400),100,4))
+#' rownames(data.matrix) <- paste("gene_",1:100,sep="")
+#' colnames(data.matrix) <- c("C1","C2","T1","T2")
+#' a <- make.avg.expression("Control_vs_Treatment",list(Control=c("C1","C2"),
+#'   Treatment=c("T1","T2")),data.matrix)
+#'}
+make.avg.expression <- function(contrast,sample.list,data.matrix,log.offset=1) {
+    conds <- strsplit(contrast,"_vs_")[[1]]
+    a.mat <- matrix(0,nrow(data.matrix),length(conds)-1)
+    for (i in 2:length(conds)) { # First condition is ALWAYS reference
+        samples.nom <- sample.list[[conds[i]]]
+        samples.denom <- sample.list[[conds[1]]]
+        nom <- data.matrix[,match(samples.nom,colnames(data.matrix))]
+        denom <- data.matrix[,match(samples.denom,colnames(data.matrix))]
+        if (!is.matrix(nom)) nom <- as.matrix(nom) # Cover the case with no replicates...
+        if (!is.matrix(denom)) denom <- as.matrix(denom)
+        mean.nom <- apply(nom,1,mean)
+        mean.denom <- apply(denom,1,mean)
+        if (any(mean.nom==0)) mean.nom <- mean.nom + log.offset
+        if (any(mean.denom==0)) mean.denom <- mean.denom + log.offset
+        a.mat[,i-1] <- 0.5*(log2(mean.nom)+log2(mean.denom))
+    }
+    rownames(a.mat) <- rownames(data.matrix)
+    colnames(a.mat) <- paste(conds[1],"_vs_",conds[2:length(conds)],sep="")
+    return(a.mat)
+}
+
+
 #' HTML report helper
 #'
 #' Returns a character matrix with html formatted table cells. Essentially, it
@@ -1923,20 +1973,24 @@ make.sample.list <- function(input,type=c("simple","targets")) {
     if (missing(input) || !file.exists(input))
         stopwrap("File to make sample list from should be a valid existing ",
             "text file!")
-    check.text.args("type",file.type,c("simple","targets"),
-        multiarg=FALSE)
+    type <- tolower(type[1])
+    check.text.args("type",type,c("simple","targets"),multiarg=FALSE)
     tab <- read.delim(input)
     samples <- as.character(tab[,1])
-    if (type=="simple")
-        conditions <- unique(as.character(tab[,2]))
-    else if (type=="targets")
-        conditions <- unique(as.character(tab[,3]))
+    if (type=="simple") {
+        ii <- 2
+        conditions <- unique(as.character(tab[,ii]))
+    }
+    else if (type=="targets") {
+        ii <- 3
+        conditions <- unique(as.character(tab[,ii]))
+    }
     if (length(samples) != length(unique(samples)))
         stopwrap("Sample names must be unique for each sample!")
     sample.list <- vector("list",length(conditions))
     names(sample.list) <- conditions
     for (n in conditions)
-        sample.list[[n]] <- samples[which(as.character(tab[,2]))==n]
+        sample.list[[n]] <- samples[which(as.character(tab[,ii])==n)]
     return(sample.list)
 }
 
@@ -2118,8 +2172,8 @@ make.report.messages <- function(lang) {
                 meta=list(
                     intersection="intersection of individual results",
                     union="union of individual results",
-                    fisher="Fisher's method (R package MADAM)",
-                    fperm="Fisher's method with permutations (R package MADAM)",
+                    fisher="Fisher's method",
+                    fperm="Fisher's method with permutations",
                     dperm.min=paste("samples permutation based method with",
                         "minimum p-values"),
                     dperm.max=paste("samples permutation based method with",

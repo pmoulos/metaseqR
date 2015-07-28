@@ -1387,8 +1387,8 @@ metaseqr <- function(
                     }
                 }
             }
-            exon.counts <- cbind(exon.data[rownames(exon.counts),c("start","end",
-                "exon_id","gene_id")],exon.counts[,unlist(sample.list,
+            exon.counts <- cbind(exon.data[rownames(exon.counts),c("start",
+                "end","exon_id","gene_id")],exon.counts[,unlist(sample.list,
                 use.names=FALSE)])
 
             # Get the exon counts per gene model
@@ -1396,8 +1396,8 @@ metaseqr <- function(
             gene.data <- reduce.gene.data(exon.data[rownames(exon.counts),],
                 gene.data)
             disp("Processing exons...")
-            the.counts <- construct.gene.model(exon.counts,sample.list,gene.data,
-                multic=multic)
+            the.counts <- construct.gene.model(exon.counts,sample.list,
+                gene.data,multic=multic)
 
             if (save.gene.model)
             {
@@ -1734,7 +1734,7 @@ metaseqr <- function(
     }
     else if (when.apply.filter=="postnorm")
     {
-        # Apply filtering prior to normalization if desired (default)
+        # Apply filtering after normalization if desired (default)
         disp("Normalizing with: ",normalization)
         switch(normalization,
             edaseq = {
@@ -2137,6 +2137,11 @@ metaseqr <- function(
         else
             all.flags <- NULL
     }
+    else {
+        gene.counts.filtered <- NULL
+        gene.counts.unnorm.filtered <- NULL
+        all.flags <- NULL
+    }
     
     counter <- 1
     for (cnt in contrast)
@@ -2511,7 +2516,25 @@ metaseqr <- function(
     exec.time <- elap2human(TB)
     disp("\n","Total processing time: ",exec.time,"\n\n")
     
-    if (out.list) return(list(data=out,html=html))
+    if (out.list) {
+        tmp <- rbind(gene.data.expr,gene.data.filtered)
+        attr(tmp,"gene.length") <- c(attr(gene.data.expr,"gene.length"),
+            attr(gene.data.filtered,"gene.length"))
+        complete <- list(
+            call=as.list(match.call()),
+            gene.data=tmp,
+            raw.counts=rbind(gene.counts.expr,gene.counts.unnorm.filtered),
+            norm.counts=rbind(norm.genes.expr,gene.counts.filtered),
+            flags=rbind(good.flags,all.flags),
+            sample.list=sample.list,
+            contrast.list=contrast,
+            p.value=cp.list,
+            fdr=adj.cp.list,
+            meta.p.value=sum.p.list,
+            meta.fdr=adj.sum.p.list
+        )
+        return(list(data=out,html=html,complete=complete))
+    }
 } # End metaseqr
 
 #' Assemble a gene model based on exon counts

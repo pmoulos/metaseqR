@@ -45,7 +45,6 @@
     a character). Mostly for internal use.
 }
 \examples{
-\donttest{
 pcut <- 1.2 # A probability cannot be larger than 1! It will throw an error!
 #check.num.args("pcut",pcut,"numeric",c(0,1),"botheq")
 pcut <- 0.05 # Pass
@@ -54,7 +53,6 @@ gc.col <- 3.4 # A column in a file cannot be real! It will throw an error!
 #check.num.args("gc.col",gc.col,"integer",0,"gt")
 gc.col <- 5L # Pass
 check.num.args("gc.col",gc.col,"integer",0,"gt")
-}
 }
 \author{
     Panagiotis Moulos

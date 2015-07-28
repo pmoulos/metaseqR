@@ -320,3 +320,20 @@ BUG FIXES
 
     o None.
 
+CHANGES IN VERSION 1.9.1 (2015-07-27)
+--------------------------------------
+
+NEW FEATURES
+
+    o Added one more output list member of the main pipeline (metaseqr)
+    containing all the processed data in a way that can be easily used
+    for further downstream analysis in R.
+
+BUG FIXES
+
+    o Fixed broken dependency with removed CRAN package MADAM which was
+    used for the Fisher p-value combination. The fix was done by copying
+    the two required functions from the last MADAM archived version (1.2).
+    o Fixed a bug in make.sample.list which rendered the function unusable
+    (credits to Marina Adamou-Tzani).
+

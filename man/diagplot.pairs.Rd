@@ -31,11 +31,9 @@
     interpretable for more than 10 samples.
 }
 \examples{
-\donttest{
 require(DESeq)
 data.matrix <- counts(makeExampleCountDataSet())
 diagplot.pairs(data.matrix)
-}
 }
 \author{
     Panagiotis Moulos

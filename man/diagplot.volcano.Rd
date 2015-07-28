@@ -53,7 +53,6 @@
     HTML reporting.
 }
 \examples{
-\donttest{
 require(DESeq)
 data.matrix <- counts(makeExampleCountDataSet())
 sample.list <- list(A=c("A1","A2"),B=c("B1","B2","B3"))
@@ -64,8 +63,7 @@ ma <- apply(M[,sample.list$A],1,mean)
 mb <- apply(M[,sample.list$B],1,mean)
 f <- log2(ifelse(mb==0,1,mb)/ifelse(ma==0,1,ma))
 diagplot.volcano(f,p[[1]],con=contrast)
-j <- diagplot.volcano(f,p[[1]],con=contrast,output="json")
-}
+#j <- diagplot.volcano(f,p[[1]],con=contrast,output="json")
 }
 \author{
     Panagiotis Moulos

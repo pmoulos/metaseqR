@@ -371,7 +371,7 @@ get.bs.organism <- function(org) {
             return("BSgenome.Hsapiens.UCSC.hg19")
         },
         hg38 = {
-            return("BSgenome.Hsapiens.UCSC.hg38") # Will throw error but correct
+            return("BSgenome.Hsapiens.UCSC.hg38")
         },
         mm9 = {
             return("BSgenome.Mmusculus.UCSC.mm9")

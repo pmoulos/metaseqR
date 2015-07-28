@@ -77,14 +77,13 @@
     independently if the user grasps the logic.
 }
 \examples{
-\donttest{
+require(VennDiagram)
 p1 <- 0.01*matrix(runif(300),100,3)
 p2 <- matrix(runif(300),100,3)
 p <- rbind(p1,p2)
 rownames(p) <- paste("gene",1:200,sep="_")
 colnames(p) <- paste("method",1:3,sep="_")
 venn.contents <- diagplot.venn(p)
-}
 }
 \author{
     Panagiotis Moulos

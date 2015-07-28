@@ -328,9 +328,6 @@ check.libsize <- function(libsize.list,sample.list) {
 #}
 check.packages <- function(m,p) {
     # Check meta-analysis packages
-    if (m %in% c("fisher","fperm") && !require(MADAM))
-        stopwrap("R package MADAM is required for \"fisher\", \"perm\" or ",
-            "\"sum\" p-value meta analysis!")
     if (m=="whitlock" && !require(survcomp))
         stopwrap("Bioconductor package survcomp is required for \"whitlock\" ",
             "p-value meta analysis!")
