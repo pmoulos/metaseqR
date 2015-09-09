@@ -144,8 +144,7 @@ read2count <- function(targets,annotation,file.type=targets$type,
         ret.val <- wapply(multic,sample.names,function(n,sample.files) {
             disp("Reading bed file ",basename(sample.files[n]),
                 " for sample with name ",n,". This might take some time...")
-            bed <- import.bed(sample.files[n],trackLine=FALSE,
-                asRangedData=FALSE)
+            bed <- import.bed(sample.files[n],trackLine=FALSE)
             disp("  Checking for chromosomes not present in the annotation...")
             bed <- bed[which(!is.na(match(as(seqnames(bed),"character"),
                 seqlevels(annotation.gr))))]
