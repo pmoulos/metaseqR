@@ -2520,8 +2520,126 @@ metaseqr <- function(
         tmp <- rbind(gene.data.expr,gene.data.filtered)
         attr(tmp,"gene.length") <- c(attr(gene.data.expr,"gene.length"),
             attr(gene.data.filtered,"gene.length"))
+        for (n in names(cp.list)) {
+            if (!is.null(gene.data.filtered)) {
+                filler <- matrix(NA,nrow(gene.data.filtered),ncol(cp.list[[n]]))
+                rownames(filler) <- rownames(gene.data.filtered)
+                colnames(filler) <- colnames(cp.list[[n]])
+            }
+            else
+                filler <- NULL
+            cp.list[[n]] <- rbind(cp.list[[n]],filler)
+            cp.list[[n]] <- cp.list[[n]][rownames(tmp),,drop=FALSE]
+        }
+        if (!is.null(adj.cp.list)) {
+           for (n in names(adj.cp.list)) {
+               if (!is.null(gene.data.filtered)) {
+                   filler <- matrix(NA,nrow(gene.data.filtered),
+                       ncol(adj.cp.list[[n]]))
+                   rownames(filler) <- rownames(gene.data.filtered)
+                   colnames(filler) <- colnames(cp.list[[n]])
+               }
+               else
+                   filler <- NULL
+               adj.cp.list[[n]] <- rbind(adj.cp.list[[n]],filler)
+               adj.cp.list[[n]] <- adj.cp.list[[n]][rownames(tmp),,drop=FALSE]
+           }
+        }
+        if (!is.null(sum.p.list)) {
+           for (n in names(sum.p.list)) {
+               if (!is.null(gene.data.filtered)) {
+                   filler <- rep(NA,nrow(gene.data.filtered))
+                   names(filler) <- rownames(gene.data.filtered)
+               }
+               else
+                   filler <- NULL
+               sum.p.list[[n]] <- c(sum.p.list[[n]],filler)
+               sum.p.list[[n]] <- sum.p.list[[n]][rownames(tmp)]
+           }
+        }
+        if (!is.null(adj.sum.p.list)) {
+           for (n in names(adj.sum.p.list)) {
+               if (!is.null(gene.data.filtered)) {
+                   filler <- rep(NA,nrow(gene.data.filtered))
+                   names(filler) <- rownames(gene.data.filtered)
+               }
+               else
+                   filler <- NULL
+               adj.sum.p.list[[n]] <- c(adj.sum.p.list[[n]],filler)
+               adj.sum.p.list[[n]] <- adj.sum.p.list[[n]][rownames(tmp)]
+           }
+        }
         complete <- list(
-            call=as.list(match.call()),
+            #call=as.list(match.call()),
+            params=list(
+                sample.list=sample.list,
+                exclude.list=exclude.list,
+                file.type=file.type,
+                path=path,
+                contrast=contrast,
+                libsize.list=libsize.list,
+                id.col=id.col,
+                gc.col=gc.col,
+                name.col=name.col,
+                bt.col=bt.col,
+                annotation=annotation,
+                org=org,
+                refdb=refdb,
+                count.type=count.type,
+                exon.filters=exon.filters,
+                gene.filters=gene.filters,
+                when.apply.filter=when.apply.filter,
+                normalization=normalization,
+                norm.args=norm.args,
+                statistics=statistics,
+                stat.args=stat.args,
+                adjust.method=adjust.method,
+                meta.p=meta.p,
+                weight=weight,
+                nperm=nperm,
+                reprod=reprod,
+                pcut=pcut,
+                log.offset=log.offset,
+                preset=preset,
+                qc.plots=qc.plots,
+                fig.format=fig.format,
+                out.list=out.list,
+                export.where=export.where,
+                export.what=export.what,
+                export.scale=export.scale,
+                export.values=export.values,
+                export.stats=export.stats,
+                export.counts.table=export.counts.table,
+                restrict.cores=restrict.cores,
+                report=report,
+                report.top=report.top,
+                report.template=report.template,
+                save.gene.model=save.gene.model,
+                verbose=verbose,
+                run.log=run.log
+            ),
+            filter.cutoffs=list(
+                exon.filter=list(
+                    min.active.exons=NULL
+                ),
+                gene.filter=list(
+                    length=gene.filters$length$length,
+                    avg.reads=if (is.null(gene.filter.cutoff)) NULL else
+                        round(gene.filter.cutoff$avg.reads,digits=5),
+                    expression=list(
+                        median=gene.filter.cutoff$expression$median,
+                        mean=gene.filter.cutoff$expression$mean,
+                        quantile=gene.filter.cutoff$expression$quantile,
+                        known=gene.filter.cutoff$expression$known,
+                        custom=gene.filter.cutoff$expression$custom
+                    ),
+                    biotype=if (is.null(gene.filters$biotype)) NULL else
+                        paste(names(gene.filters$biotype)[which(
+                            unlist(gene.filters$biotype))],collapse=", ")
+                ),
+                zero.filtered=length(the.zeros),
+                total.filtered=length(the.zeros)+length(the.dead)
+            ),
             gene.data=tmp,
             raw.counts=rbind(gene.counts.expr,gene.counts.unnorm.filtered),
             norm.counts=rbind(norm.genes.expr,gene.counts.filtered),

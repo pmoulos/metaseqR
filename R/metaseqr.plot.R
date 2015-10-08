@@ -1498,9 +1498,10 @@ diagplot.volcano <- function(f,p,con=NULL,fcut=1,pcut=0.05,alt.names=NULL,
             user=list(up=up,down=down,unf=ff,unp=pp,ualt=alt.names.neutral,
                 con=con)
         )
-        json <- volcanoToJSON(obj)
-        fil <- file.path(path,paste("volcano_",con,".json",sep=""))
-        write(json,fil)
+        #json <- volcanoToJSON(obj)
+        #fil <- file.path(path,paste("volcano_",con,".json",sep=""))
+        #write(json,fil)
+        fil <- volcanoToJSON(obj)
     }
     return(fil)
 }

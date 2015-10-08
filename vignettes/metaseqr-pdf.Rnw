@@ -303,7 +303,6 @@ combination methods). The following example shows how to create such weights
 (depending on the size of the dataset, it might take some time to run):
 
 <<example-6, eval=TRUE, echo=TRUE, tidy=FALSE>>=
-# A full example pipeline with exon counts
 data("mm9.gene.data",package="metaseqR")
 multic <- check.parallel(0.8)
 weights <- estimate.aufc.weights(

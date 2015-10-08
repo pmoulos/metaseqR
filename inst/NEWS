@@ -320,14 +320,15 @@ BUG FIXES
 
     o None.
 
-CHANGES IN VERSION 1.9.1 (2015-07-27)
+CHANGES IN VERSION 1.9.21 (2015-10-08)
 --------------------------------------
 
 NEW FEATURES
 
     o Added one more output list member of the main pipeline (metaseqr)
     containing all the processed data in a way that can be easily used
-    for further downstream analysis in R.
+    for further downstream analysis in R. Contains also the metaseqr pipeline
+    call and the parameters.
 
 BUG FIXES
 
@@ -336,4 +337,10 @@ BUG FIXES
     the two required functions from the last MADAM archived version (1.2).
     o Fixed a bug in make.sample.list which rendered the function unusable
     (credits to Marina Adamou-Tzani).
+    o Fixed a very special-case small bug in the report generation only a single
+    gene passes the multiple testing correction cutoff (thans to Martic Reszcko,
+    BSRC 'Alexander Fleming').
+    o Fixed problem with Fisher p-value combination method (returning all NA due
+    to the inexistence of names in the p-value vecror).
+    o Fixed bug with flags of biotype filtered genes.
 

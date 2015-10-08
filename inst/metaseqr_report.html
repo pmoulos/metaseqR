@@ -339,7 +339,7 @@
                                                     are.there <- which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm)
                                                     if (length(are.there)>0) {
                                                         if (length(are.there)==1) {
-                                                            tmp.f <- log2(make.fold.change(cnt,sample.list,t(as.matrix(norm.genes.expr[are.there,])),log.offset))
+                                                            tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[are.there,,drop=FALSE],log.offset))
                                                             add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
                                                             add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
                                                             add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
@@ -592,7 +592,7 @@
                                                         are.there <- which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm)
                                                         if (length(are.there)>0) {
                                                             if (length(are.there)==1) {
-                                                                tmp.f <- log2(make.fold.change(cnt,sample.list,t(as.matrix(norm.genes.expr[are.there,])),log.offset))
+                                                                tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[are.there,,drop=FALSE],log.offset))
                                                                 add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
                                                                 add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
                                                                 add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")

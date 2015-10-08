@@ -1493,8 +1493,9 @@ make.fold.change <- function(contrast,sample.list,data.matrix,log.offset=1) {
     for (i in 2:length(conds)) { # First condition is ALWAYS reference
         samples.nom <- sample.list[[conds[i]]]
         samples.denom <- sample.list[[conds[1]]]
-        nom <- data.matrix[,match(samples.nom,colnames(data.matrix))]
-        denom <- data.matrix[,match(samples.denom,colnames(data.matrix))]
+        nom <- data.matrix[,match(samples.nom,colnames(data.matrix)),drop=FALSE]
+        denom <- data.matrix[,match(samples.denom,colnames(data.matrix)),
+            drop=FALSE]
         if (!is.matrix(nom)) nom <- as.matrix(nom) # Cover the case with no replicates...
         if (!is.matrix(denom)) denom <- as.matrix(denom)
         mean.nom <- apply(nom,1,mean)

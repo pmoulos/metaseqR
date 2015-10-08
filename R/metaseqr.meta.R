@@ -41,9 +41,9 @@
 #'}
 meta.test <- function(cp.list,meta.p=c("simes","bonferroni","fisher",
     "dperm.min","dperm.max","dperm.weight","fperm","whitlock","minp","maxp",
-    "weight","pandora","none"),counts,sample.list,statistics,stat.args,libsize.list,
-    nperm=10000,weight=rep(1/length(statistics),length(statistics)),
-    reprod=TRUE,multic=FALSE) {
+    "weight","pandora","none"),counts,sample.list,statistics,stat.args,
+    libsize.list,nperm=10000,weight=rep(1/length(statistics),
+    length(statistics)),reprod=TRUE,multic=FALSE) {
     check.text.args("meta.p",meta.p,c("simes","bonferroni","fisher","dperm.min",
         "dperm.max","dperm.weight","fperm","whitlock","minp","maxp","weight",
         "pandora","none"))
@@ -56,7 +56,9 @@ meta.test <- function(cp.list,meta.p=c("simes","bonferroni","fisher",
             sum.p.list <- wapply(multic,cp.list,function(x) {
                 tmp <- fisher.method(x,p.corr="none",
                     zero.sub=.Machine$double.xmin)
-                return(tmp$p.value)
+                rp <- tmp$p.value
+                names(rp) <- rownames(x)
+                return(rp)
             })
         },
         fperm = {

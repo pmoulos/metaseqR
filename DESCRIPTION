@@ -56,8 +56,8 @@ biocViews: Software, GeneExpression, DifferentialExpression, WorkflowStep,
 VignetteBuilder: knitr
 Authors@R: c(person(given="Panagiotis", family="Moulos",
     email="moulos@fleming.gr", role=c("aut", "cre")))
-Version: 1.9.2
-Date: 2015-07-27
+Version: 1.9.21
+Date: 2015-10-08
 Collate:
     'metaseqr.annotation.R'
     'metaseqr.argcheck.R'

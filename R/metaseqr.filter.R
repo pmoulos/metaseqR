@@ -266,6 +266,9 @@ filter.genes <- function(gene.counts,gene.data,gene.filters) {
                 }
                 else
                     gene.filter.result$biotype <- NULL
+                if (!is.null(gene.filter.result$biotype) && 
+                    length(gene.filter.result$biotype)>0) 
+                    flags[gene.filter.result$biotype,"BT"] <- 1
             }
         )
     }
