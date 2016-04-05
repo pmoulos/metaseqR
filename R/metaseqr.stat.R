@@ -297,8 +297,9 @@ stat.edger <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
                 #    dispersion=bcv^2)
                 fit <- glmFit(dge[,ms],design=design,dispersion=bcv^2,
                     prior.count=stat.args$prior.count,start=stat.args$start)
-                lrt <- glmLRT(fit,coef=2:ncol(fit$design),test=stat.args$test)
-                    res <- topTags(lrt,n=nrow(dge))
+                #lrt <- glmLRT(fit,coef=2:ncol(fit$design),test=stat.args$test)
+                lrt <- glmLRT(fit,coef=2:ncol(fit$design))
+                res <- topTags(lrt,n=nrow(dge))
         }
         p[[con.name]] <- res$table[,"PValue"]
         names(p[[con.name]]) <- rownames(res$table)

@@ -2518,8 +2518,10 @@ metaseqr <- function(
     
     if (out.list) {
         tmp <- rbind(gene.data.expr,gene.data.filtered)
-        attr(tmp,"gene.length") <- c(attr(gene.data.expr,"gene.length"),
+        a <- c(attr(gene.data.expr,"gene.length"),
             attr(gene.data.filtered,"gene.length"))
+        names(a) <- rownames(tmp)
+        attr(tmp,"gene.length") <- a
         for (n in names(cp.list)) {
             if (!is.null(gene.data.filtered)) {
                 filler <- matrix(NA,nrow(gene.data.filtered),ncol(cp.list[[n]]))
@@ -2532,29 +2534,36 @@ metaseqr <- function(
             cp.list[[n]] <- cp.list[[n]][rownames(tmp),,drop=FALSE]
         }
         if (!is.null(adj.cp.list)) {
-           for (n in names(adj.cp.list)) {
-               if (!is.null(gene.data.filtered)) {
-                   filler <- matrix(NA,nrow(gene.data.filtered),
-                       ncol(adj.cp.list[[n]]))
-                   rownames(filler) <- rownames(gene.data.filtered)
-                   colnames(filler) <- colnames(cp.list[[n]])
-               }
-               else
-                   filler <- NULL
-               adj.cp.list[[n]] <- rbind(adj.cp.list[[n]],filler)
-               adj.cp.list[[n]] <- adj.cp.list[[n]][rownames(tmp),,drop=FALSE]
-           }
+            for (n in names(adj.cp.list)) {
+                if (!is.null(gene.data.filtered)) {
+                    filler <- matrix(NA,nrow(gene.data.filtered),
+                        ncol(adj.cp.list[[n]]))
+                    rownames(filler) <- rownames(gene.data.filtered)
+                    colnames(filler) <- colnames(cp.list[[n]])
+                }
+                else
+                    filler <- NULL
+                adj.cp.list[[n]] <- rbind(adj.cp.list[[n]],filler)
+                adj.cp.list[[n]] <- adj.cp.list[[n]][rownames(tmp),,drop=FALSE]
+            }
         }
         if (!is.null(sum.p.list)) {
-           for (n in names(sum.p.list)) {
-               if (!is.null(gene.data.filtered)) {
-                   filler <- rep(NA,nrow(gene.data.filtered))
-                   names(filler) <- rownames(gene.data.filtered)
-               }
-               else
-                   filler <- NULL
-               sum.p.list[[n]] <- c(sum.p.list[[n]],filler)
-               sum.p.list[[n]] <- sum.p.list[[n]][rownames(tmp)]
+            for (n in names(sum.p.list)) {
+                if (!is.null(gene.data.filtered)) {
+                    filler <- rep(NA,nrow(gene.data.filtered))
+                    names(filler) <- rownames(gene.data.filtered)
+                }
+                else
+                    filler <- NULL
+                if (is.matrix(sum.p.list[[n]])) {
+                    sum.p.list[[n]] <- rbind(sum.p.list[[n]],as.matrix(filler))
+                    sum.p.list[[n]] <- sum.p.list[[n]][rownames(tmp),,
+                        drop=FALSE]
+                }
+                else {
+                    sum.p.list[[n]] <- c(sum.p.list[[n]],filler)
+                    sum.p.list[[n]] <- sum.p.list[[n]][rownames(tmp)]
+                }
            }
         }
         if (!is.null(adj.sum.p.list)) {
@@ -2638,6 +2647,8 @@ metaseqr <- function(
                             unlist(gene.filters$biotype))],collapse=", ")
                 ),
                 zero.filtered=length(the.zeros),
+                exon.filtered=length(unique(unlist(exon.filter.result))),
+                gene.filtered=length(unique(unlist(gene.filter.result))),
                 total.filtered=length(the.zeros)+length(the.dead)
             ),
             gene.data=tmp,

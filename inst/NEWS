@@ -344,3 +344,15 @@ BUG FIXES
     to the inexistence of names in the p-value vecror).
     o Fixed bug with flags of biotype filtered genes.
 
+CHANGES IN VERSION 1.9.3 (2015-04-04)
+--------------------------------------
+
+NEW FEATURES
+
+    o None
+
+BUG FIXES
+
+    o Fixed BED file reading by fixing the deprecated option in import.bed
+	(asRangedData) from rtracklayer
+
