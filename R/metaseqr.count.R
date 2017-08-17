@@ -84,6 +84,7 @@ read2count <- function(targets,annotation,file.type=targets$type,
     # If the count type is "exon", we must reduce the overlapping exons belonging
     # to multiple transcripts, so as to avoid inflating the final read count when
     # summing all exons
+    inter.feature <- FALSE
     if (length(grep("exon",colnames(annotation)))>0) {
         if (length(grep("MEX",annotation$exon_id[1]))) # Retrieved from previous
             merged.annotation <- annotation
@@ -113,6 +114,40 @@ read2count <- function(targets,annotation,file.type=targets$type,
                 as.character(merged.annotation$exon_id)
         }
     }
+    else if (length(grep("transcript",colnames(annotation)))>0) {
+        if (length(grep("MET",annotation$transcript_id[1]))) # Retrieved from previous
+            merged.annotation <- annotation
+        else {
+            disp("Merging transcript 3' UTRs to create unique gene/transcript models...")
+            annotation.gr <- reduce.transcripts.utr(annotation.gr,multic=multic)
+            disp("Flanking merged transcript 3' UTRs per 500bp...")
+            w <- width(annotation.gr)
+            annotation.gr <- promoters(annotation.gr,upstream=500,downstream=0)
+            annotation.gr <- resize(annotation.gr,width=w+1000)
+            #merged.annotation <- as.data.frame(annotation.gr) # Bug?
+            merged.annotation <- data.frame(
+                chromosome=as.character(seqnames(annotation.gr)),
+                start=start(annotation.gr),
+                end=end(annotation.gr),
+                transcript_id=if (!is.null(annotation.gr$transcript_id))
+                    as.character(annotation.gr$transcript_id) else
+                    as.character(annotation.gr$name),
+                gene_id=if (!is.null(annotation.gr$gene_id))
+                    as.character(annotation.gr$gene_id) else
+                    as.character(annotation.gr$name),
+                strand=as.character(strand(annotation.gr)),
+                gene_name=if (!is.null(annotation.gr$gene_name))
+                    as.character(annotation.gr$gene_name) else 
+                    if (!is.null(annotation.gr$symbol))
+                    as.character(annotation.gr$name) else NULL,
+                biotype=if (!is.null(annotation.gr$biotype))
+                    as.character(annotation.gr$biotype) else NULL
+            )
+            rownames(merged.annotation) <- 
+                as.character(merged.annotation$transcript_id)
+        }
+        inter.feature = FALSE # Quant-Seq
+    }
     else
         merged.annotation <- NULL
     # Continue
@@ -135,6 +170,8 @@ read2count <- function(targets,annotation,file.type=targets$type,
     counts <- matrix(0,nrow=length(annotation.gr),ncol=length(sample.names))
     if (length(grep("exon",colnames(annotation)))>0)
         rownames(counts) <- as.character(annotation.gr$exon_id)
+    else if (length(grep("transcript",colnames(annotation)))>0)
+        rownames(counts) <- as.character(annotation.gr$transcript_id)
     else
         rownames(counts) <- as.character(annotation.gr$gene_id)
     colnames(counts) <- sample.names
@@ -250,7 +287,7 @@ read2count <- function(targets,annotation,file.type=targets$type,
                     disp("    ...for remote BAM file... might take longer...")
                 counts <- summarizeOverlaps(annotation.gr,reads,
                     singleEnd=singleEnd,fragments=fragments,
-                    ignore.strand=ignore.strand)
+                    ignore.strand=ignore.strand,inter.feature=inter.feature)
                 counts <- assays(counts)$counts
             }
             else
@@ -314,6 +351,65 @@ reduce.exons <- function(gr,multic=FALSE) {
         n <- length(merged)
         meta <- DataFrame(
             exon_id=paste(x,"MEX",1:n,sep="_"),
+            gene_id=rep(x,n)
+        )
+        if (!is.null(g))
+            meta$gene_name <- rep(gena,n)
+        if (!is.null(b))
+            meta$biotype <- rep(btty,n)
+        mcols(merged) <- meta
+        return(merged)
+    },gr,gn,bt)
+    return(do.call("c",red.list))
+}
+
+#' Merges 3' UTR of transcripts to create a unique set of coordinates for each
+#' transcript
+#'
+#' This function uses the \code{"reduce"} function of IRanges to construct virtual
+#' unique transcripts for each gene, so as to avoid inflating the read counts for 
+#' each gene because of multiple possibly overlaping 3' UTR starts/ends when using
+#' metaseqR with QuantSeq protocol.
+#'
+#' @param gr a GRanges object created from the supplied annotation (see also the
+#' \code{\link{read2count}} and \code{\link{get.annotation}} functions.
+#' @param multic a logical value indicating the presence of multiple cores. Defaults
+#' to \code{FALSE}. Do not change it if you are not sure whether package parallel
+#' has been loaded or not.
+#' @return A GRanges object with virtual merged exons for each gene/transcript.
+#' @export
+#' @author Panagiotis Moulos
+#' @examples
+#' \dontrun{
+#' require(GenomicRanges)
+#' ann <- get.annotation("mm9","exon")
+#' gr <- makeGRangesFromDataFrame(
+#'  df=ann,
+#'  keep.extra.columns=TRUE,
+#'  seqnames.field="chromosome"
+#' )
+#' re <- reduce.exons(gr)
+#'}
+reduce.transcripts.utr <- function(gr,multic=FALSE) {
+    gene <- unique(as.character(gr$gene_id))
+    if (!is.null(gr$gene_name))
+        gn <- gr$gene_name
+    else
+        gn <- NULL
+    if (!is.null(gr$biotype))
+        bt <- gr$biotype   
+    else
+        bt <- NULL
+    red.list <- wapply(multic,gene,function(x,a,g,b) {
+        tmp <- a[a$gene_id==x]
+        if (!is.null(g))
+            gena <- as.character(tmp$gene_name[1])
+        if (!is.null(b))
+            btty <- as.character(tmp$biotype[1])
+        merged <- reduce(tmp)
+        n <- length(merged)
+        meta <- DataFrame(
+            transcript_id=paste(x,"MET",1:n,sep="_"),
             gene_id=rep(x,n)
         )
         if (!is.null(g))
@@ -434,6 +530,12 @@ read.targets <- function(input,path=NULL) {
             whats.strand <- tolower(as.character(tab[,5]))
             if (!all(whats.strand %in% c("yes","no","forward","reverse")))
                 stopwrap("Unknown option for read strandedness in targets file")
+            if (whats.strand %in% c("yes","no")) {
+				deprecated.warning("read.targets")
+				tmp <- as.character(tab[,5])
+				tmp[tmp=="yes"] <- "forward"
+				tab[,5] <- tmp
+			}
             has.paired.info <- TRUE
             has.stranded.info <- TRUE
         }

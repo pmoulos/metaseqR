@@ -338,7 +338,7 @@ BUG FIXES
     o Fixed a bug in make.sample.list which rendered the function unusable
     (credits to Marina Adamou-Tzani).
     o Fixed a very special-case small bug in the report generation only a single
-    gene passes the multiple testing correction cutoff (thans to Martic Reszcko,
+    gene passes the multiple testing correction cutoff (thans to Martin Reczko,
     BSRC 'Alexander Fleming').
     o Fixed problem with Fisher p-value combination method (returning all NA due
     to the inexistence of names in the p-value vecror).
@@ -354,5 +354,28 @@ NEW FEATURES
 BUG FIXES
 
     o Fixed BED file reading by fixing the deprecated option in import.bed
-	(asRangedData) from rtracklayer
+    (asRangedData) from rtracklayer
+
+CHANGES IN VERSION 1.11.2 (2016-07-26)
+--------------------------------------
+
+NEW FEATURES
+
+    o Basic support for Quant-Seq experiments
+
+BUG FIXES
+
+    o None
+
+CHANGES IN VERSION 1.11.4 (2017-04-04)
+--------------------------------------
+
+NEW FEATURES
+
+    o None
+
+BUG FIXES
+
+    o Fixed importing of external gene file for non-supporting
+    organism when count.type is "exon" or "utr"
 

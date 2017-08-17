@@ -334,7 +334,7 @@
                                             else
                                                 add.text.p <- has.fdr.text <- NULL
                                             if (length(strsplit(cnt,"_vs_")[[1]])==2) {
-                                                tmp <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(sum.p.list[[cnt]]<plasm),],log.offset))
+                                                tmp <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(sum.p.list[[cnt]]<plasm),,drop=FALSE],log.offset))
                                                 if (adjust.method!="none") {
                                                     are.there <- which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm)
                                                     if (length(are.there)>0) {
@@ -345,7 +345,7 @@
                                                             add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
                                                         }
                                                         else {
-                                                            tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[are.there,],log.offset))
+                                                            tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[are.there,,drop=FALSE],log.offset))
                                                             add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
                                                             add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
                                                             add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
@@ -587,7 +587,7 @@
                                                 else
                                                     add.text.p <- has.fdr.text <- NULL
                                                 if (length(strsplit(cnt,"_vs_")[[1]])==2) {
-                                                    tmp.p <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(sum.p.list[[cnt]]<plasm),],log.offset))
+                                                    tmp.p <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(sum.p.list[[cnt]]<plasm),,drop=FALSE],log.offset))
                                                     if (adjust.method!="none") {
                                                         are.there <- which(p.adjust(sum.p.list[[cnt]],adjust.method)<plasm)
                                                         if (length(are.there)>0) {
@@ -598,7 +598,7 @@
                                                                 add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
                                                             }
                                                             else {
-                                                                tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[are.there,],log.offset))
+                                                                tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[are.there,,drop=FALSE],log.offset))
                                                                 add.text.fu <- paste(" (",length(which(tmp.f>=1)),")",sep="")
                                                                 add.text.fd <- paste(" (",length(which(tmp.f<=-1)),")",sep="")
                                                                 add.text.fn <- paste(" (",length(which(abs(tmp.f)<1)),")",sep="")
@@ -629,9 +629,9 @@
                                                         else
                                                             add.text.p <- has.fdr.text <- NULL
                                                         if (length(strsplit(cnt,"_vs_")[[1]])==2) {
-                                                            tmp.p <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(cp.list[[cnt]][,s]<plasm),],log.offset))
+                                                            tmp.p <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(cp.list[[cnt]][,s]<plasm),,drop=FALSE],log.offset))
                                                             if (adjust.method!="none") {
-                                                                tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(p.adjust(cp.list[[cnt]][,s],adjust.method)<plasm),],log.offset))
+                                                                tmp.f <- log2(make.fold.change(cnt,sample.list,norm.genes.expr[which(p.adjust(cp.list[[cnt]][,s],adjust.method)<plasm),,drop=FALSE],log.offset))
                                                                 add.text.fu <- paste("(",length(which(tmp.f>=1)),")",sep="")
                                                                 add.text.fd <- paste("(",length(which(tmp.f<=-1)),")",sep="")
                                                                 add.text.fn <- paste("(",length(which(abs(tmp.f)<1)),")",sep="")

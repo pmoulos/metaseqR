@@ -7,11 +7,12 @@
         file.type = c("auto", "sam", "bam", "bed"),
         path = NULL, contrast = NULL, libsize.list = NULL,
         id.col = 4, gc.col = NA, name.col = NA, bt.col = NA,
-        annotation = c("download", "embedded"),
-        org = c("hg18", "hg19", "hg38", "mm9", "mm10", "rn5", "dm3", 
-            "danrer7", "pantro4", "susscr3", "tair10", "custom"),
+        annotation = c("download", "embedded"), gene.file = NULL,
+        org = c("hg18", "hg19", "hg38", "mm9", "mm10", "rn5", "rn6",
+            "dm3", "dm6", "danrer7", "pantro4", "susscr3", "tair10", 
+            "custom"),
         refdb = c("ensembl", "ucsc", "refseq"),
-        count.type = c("gene", "exon"),
+        count.type = c("gene", "exon","utr"),
         exon.filters = list(min.active.exons = list(exons.per.gene = 5, 
                 min.exons = 2, frac = 1/5)),
         gene.filters = list(length = list(length = 500), 
@@ -49,7 +50,7 @@
         export.counts.table = FALSE,
         restrict.cores = 0.6, report = TRUE, report.top = 0.1,
         report.template = "default", save.gene.model = TRUE,
-        verbose = TRUE, run.log = TRUE, ...)
+        verbose = TRUE, run.log = TRUE, progress.fun = NULL, ...)
 }
 \arguments{
     \item{counts}{a text tab-delimited file containing gene
@@ -208,17 +209,25 @@
     or iv) a file specified by the user which should be as
     similar as possible to the \code{"download"} case, in
     terms of column structure.}
+    
+    \item{gene.file}{an external gene annotation file 
+    required when \code{annotation="embedded"}, 
+    \code{count.type="exon"} or \code{count.type="utr"}
+    and \code{org="custom"}. See the result of 
+    \code{\link{get.annotation}} on the format of the 
+    external gene file.}
 
     \item{org}{the supported organisms by metaseqr. These can
     be, for human genomes \code{"hg18"}, \code{"hg19"} or 
     \code{"hg38"},  for mouse genomes \code{"mm9"}, \code{"mm10"}, 
-    for rat genome \code{"rn5"}, for drosophila genome
-    \code{"dm3"}, for zebrafish genome \code{"danrer7"}, for
-    chimpanzee genome \code{"pantro4"}, for pig genome 
-    \code{"susscr3"} and for Arabidopsis thaliana genome 
-    \code{"tair10"}. Finally, \code{"custom"} will instruct 
-    metaseqR to completely ignore the \code{org} argument and 
-    depend solely on annotation file provided by the user.}
+    for rat genomes \code{"rn5"} or \code{"rn6"}, for drosophila 
+    genome \code{"dm3"} or \code{"dm6"}, for zebrafish genome 
+    \code{"danrer7"}, for chimpanzee genome \code{"pantro4"}, 
+    for pig genome \code{"susscr3"} and for Arabidopsis 
+    thaliana genome \code{"tair10"}. Finally, \code{"custom"} 
+    will instruct metaseqR to completely ignore the \code{org} 
+    argument and depend solely on annotation file provided by 
+    the user.}
 
     \item{refdb}{the reference annotation repository from
     which to retrieve annotation elements to use with
@@ -226,9 +235,10 @@
     \code{"ucsc"} or \code{"refseq"}.}
 
     \item{count.type}{the type of reads inside the counts
-    file. It can be one of \code{"gene"} or \code{"exon"}.
-    This is a very important and mandatory parameter as it
-    defines the course of the workflow.}
+    file. It can be one of \code{"gene"}, \code{"exon"} or
+    \code{"utr"} for quant seq (lexogen) protocol. This is
+    a very important and mandatory parameter as it defines
+    the course of the workflow.}
 
     \item{exon.filters}{a named list whose names are the
     names of the supported exon filters and its members the
@@ -561,6 +571,11 @@
     \item{run.log}{write a log file of the \code{metaseqr}
     run using package log4r. Defaults to \code{TRUE}. The
     filename will be auto-generated.}
+    
+    \item{progress.fun}{a function which updates a 
+    \code{Progress} object from shiny. This function must
+    accept a \code{detail} argument. See 
+    http://shiny.rstudio.com/articles/progress.html}
 
     \item{...}{further arguments that may be passed to
     plotting functions, related to \code{\link{par}}.}

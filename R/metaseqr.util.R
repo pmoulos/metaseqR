@@ -400,6 +400,29 @@ get.defaults <- function(what,method=NULL) {
                         misc_RNA=FALSE
                     ))
                 },
+                rn6 = {
+                    return(list(
+                        antisense=FALSE,
+                        lincRNA=FALSE,
+                        miRNA=FALSE,
+                        misc_RNA=FALSE,
+                        processed_pseudogene=FALSE,
+                        processed_transcript=FALSE,
+                        protein_coding=FALSE,
+                        pseudogene=FALSE,
+                        ribozyme=FALSE,
+                        rRNA=TRUE,
+                        scaRNA=FALSE,
+                        sense_intronic=FALSE,
+                        snoRNA=FALSE,
+                        snRNA=FALSE,
+                        sRNA=FALSE,
+                        TEC=FALSE,
+                        transcribed_processed_pseudogene=FALSE,
+                        transcribed_unprocessed_pseudogene=FALSE,
+                        unprocessed_pseudogene=FALSE
+                    ))
+                },
                 danrer7 = {
                     return(list(
                         antisense=FALSE,
@@ -1757,7 +1780,7 @@ make.transformation <- function(data.matrix,export.scale,
                 mat[[scl]] <- nat2log(data.matrix,base=10,off=log.offset)
             },
             vst = {
-                fit <- vsn2(data.matrix,verbose=FALSE)
+                fit <- vsn:::vsn2(data.matrix,verbose=FALSE)
                 mat[[scl]] <- predict(fit,newdata=data.matrix)
             },
             rpgm = {

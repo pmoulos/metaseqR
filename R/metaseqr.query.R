@@ -21,7 +21,7 @@ get.ucsc.dbl <- function(org,type,refdb="ucsc") {
     refdb <- tolower(refdb[1])
     check.text.args("type",type,c("gene","exon"))
     check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
+        "dm6","danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
     check.text.args("refdb",refdb,c("ucsc","refseq"))
     
     if (!require(RSQLite))
@@ -90,7 +90,7 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
     what <- tolower(what[1])
     check.text.args("type",type,c("gene","exon"))
     check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
+        "dm6","danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
     check.text.args("refdb",refdb,c("ucsc","refseq"))
     check.text.args("what",what,c("queries","fields"))
     switch(type,
@@ -182,6 +182,10 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
                                 ensemblSource=
                                     get.ucsc.tbl.tpl("ensemblSource",what)
                             ))
+                        },
+                        dm6 = {
+                            # Stub until we find out what will happen with
+                            # Augustus
                         },
                         danrer7 = {
                             return(list(
@@ -301,6 +305,10 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
                                 ensemblSource=
                                     get.ucsc.tbl.tpl("ensemblSource",what)
                             ))
+                        },
+                        dm6 = {
+                            # Stub until we find out what is going on with
+                            # Augustus
                         },
                         danrer7 = {
                             return(list(
@@ -429,6 +437,10 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
                                     get.ucsc.tbl.tpl("ensemblSource",what)
                             ))
                         },
+                        dm6 = {
+                            # Stub until we find out what is going on with
+                            # Augustus
+                        },
                         danrer7 = {
                             return(list(
                                 mgcGenes=get.ucsc.tbl.tpl("mgcGenes",what),
@@ -547,6 +559,10 @@ get.ucsc.tabledef <- function(org,type,refdb="ucsc",what="queries") {
                                 ensemblSource=
                                     get.ucsc.tbl.tpl("ensemblSource",what)
                             ))
+                        },
+                        dm6 = {
+                            # Stub until we find out what is going on with
+                            # Augustus
                         },
                         danrer7 = {
                             return(list(
@@ -828,7 +844,7 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
     refdb <- tolower(refdb[1])
     check.text.args("type",type,c("gene","exon"))
     check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
+        "dm6","danrer7","pantro4","susscr3","tair10"),multiarg=FALSE)
     check.text.args("refdb",refdb,c("ucsc","refseq"))
     switch(type,
         gene = {
@@ -964,6 +980,10 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
                                 "GROUP BY `gene_id` ORDER BY `chromosome`, ",
                                 "`start`",
                                 sep=""))
+                        },
+                        dm6 = {
+                            # Stub until we find out what is going on with
+                            # Augustus
                         },
                         danrer7 = {
                             return(paste("SELECT mgcGenes.chrom AS ",
@@ -1146,6 +1166,10 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
                                 "GROUP BY `gene_id` ORDER BY `chromosome`, ",
                                 "`start`",
                                 sep=""))
+                        },
+                        dm6 = {
+                            # Stub until we find out what is going on with
+                            # Augustus
                         },
                         danrer7 = {
                             return(paste("SELECT refFlat.chrom AS ",
@@ -1339,6 +1363,10 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
                                 "`start`",
                                 sep=""))
                         },
+                        dm6 = {
+                            # Stub until we find out what is going on with
+                            # Augustus
+                        },
                         danrer7 = {
                             return(paste("SELECT mgcGenes.chrom AS ",
                                 "`chromosome`,`exonStarts` AS `start`,",
@@ -1518,6 +1546,10 @@ get.ucsc.query <- function(org,type,refdb="ucsc") {
                                 "GROUP BY `gene_id` ORDER BY `chromosome`, ",
                                 "`start`",
                                 sep=""))
+                        },
+                        dm6 = {
+                            # Stub until we find out what is going on with
+                            # Augustus
                         },
                         danrer7 = {
                             return(paste("SELECT refFlat.chrom AS ",

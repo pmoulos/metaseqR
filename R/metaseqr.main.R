@@ -133,7 +133,7 @@
 #' similar as possible to the \code{"download"} case, in terms of column structure.
 #' @param org the supported organisms by metaseqr. These can be, for human genomes
 #' \code{"hg18"}, \code{"hg19"} or \code{"hg38"} for mouse genomes \code{"mm9"},
-#' \code{"mm10"}, for rat genomes \code{"rn5"}, for drosophila genome \code{"dm3"}, 
+#' \code{"mm10"}, for rat genomes \code{"rn5"}, for drosophila genome \code{"dm6"}, 
 #' for zebrafish genome \code{"danrer7"}, for chimpanzee genome \code{"pantro4"},
 #' for pig genome \code{"susScr3"} and for Arabidopsis thaliana genome \code{"tair10"}.
 #' Finally, \code{"custom"} will instruct metaseqR to completely ignore the 
@@ -789,10 +789,11 @@ metaseqr <- function(
     name.col=NA,
     bt.col=NA,
     annotation=c("download","embedded"),
-    org=c("hg18","hg19","hg38","mm9","mm10","rn5","dm3","danrer7","pantro4",
-        "susscr3","tair10","custom"),
+    gene.file=NULL,
+    org=c("hg18","hg19","hg38","mm9","mm10","rn5","rn6","dm3","dm6",
+        "danrer7","pantro4","susscr3","tair10","custom"),
     refdb=c("ensembl","ucsc","refseq"),
-    count.type=c("gene","exon"),
+    count.type=c("gene","exon","utr"),
     exon.filters=list(
         min.active.exons=list(
             exons.per.gene=5,
@@ -854,6 +855,7 @@ metaseqr <- function(
     save.gene.model=TRUE,
     verbose=TRUE,
     run.log=TRUE,
+    progress.fun=NULL,
     ...
 )
 
@@ -1010,7 +1012,8 @@ metaseqr <- function(
         }
     }
 
-    if (is.list(counts) && count.type=="exon" && annotation=="embedded")
+    if (is.list(counts) && !is.data.frame(counts) && count.type=="exon" 
+		&& annotation=="embedded")
     {
         warnwrap("annotation cannot be \"embedded\" when importing a stored ",
             "gene model! Switching to \"download\"...")
@@ -1025,10 +1028,11 @@ metaseqr <- function(
         multiarg=FALSE)
     check.text.args("annotation",annotation,c("embedded","download"),
         multiarg=FALSE)
-    check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","dm3",
-        "danrer7","pantro4","susscr3","tair10","custom"),multiarg=FALSE)
+    check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","rn6",
+        "dm3","dm6","danrer7","pantro4","susscr3","tair10","custom"),
+        multiarg=FALSE)
     check.text.args("refdb",refdb,c("ensembl","ucsc","refseq"),multiarg=FALSE)
-    check.text.args("count.type",count.type,c("gene","exon"),multiarg=FALSE)
+    check.text.args("count.type",count.type,c("gene","exon","utr"),multiarg=FALSE)
     check.text.args("when.apply.filter",when.apply.filter,c("postnorm",
         "prenorm"),multiarg=FALSE)
     check.text.args("normalization",normalization,c("edaseq","deseq","edger",
@@ -1138,6 +1142,13 @@ metaseqr <- function(
         if (length(to.remove)>0)
             qc.plots <- qc.plots[-to.remove]
     }
+    
+    # Check what happens with custom organism and exons/utrs
+    if (org=="custom" && count.type %in% c("exon","utr") 
+		&& (is.null(gene.file) || !file.exists(gene.file))) 
+		stopwrap("When org=\"custom\" and count.type is not \"gene\", ",
+			"an additional gene file must be provided with the gene.file ",
+			"argument!")
 
     # Check additional input arguments for normalization and statistics
     alg.args <- validate.alg.args(normalization,statistics,norm.args,stat.args)
@@ -1284,6 +1295,11 @@ metaseqr <- function(
     disp("Output values: ",paste(export.values,collapse=", "))
     if ("stats" %in% export.what)
         disp("Output statistics: ",paste(export.stats,collapse=", "),"\n")
+        
+    if (is.function(progress.fun)) {
+        text <- paste("Starting the analysis...")
+        progress.fun(detail=text)
+    }
     ############################################################################
 
     if (count.type=="exon")
@@ -1291,8 +1307,25 @@ metaseqr <- function(
         # Download gene annotation anyway if not previous analysis restored
         if (!from.previous) 
         {
-            disp("Downloading gene annotation for ",org,"...")
-            gene.data <- get.annotation(org,"gene",refdb)
+            if (org=="custom") 
+            {
+				if (!is.null(gene.file) && file.exists(gene.file)) 
+				{
+					disp("Reading custom external gene annotation for from ",
+						gene.file,"...")
+					gene.data <- read.delim(gene.file)
+					rownames(gene.data) <- as.character(gene.data$gene_id)
+					if (!is.null(gene.data$gc_content) # Already divided
+						&& max(as.numeric(gene.data$gc_content))<=1)
+						gene.data$gc_content = 
+							100*as.numeric(gene.data$gc_content)
+				}
+			}
+			else
+			{
+				disp("Downloading gene annotation for ",org,"...")
+				gene.data <- get.annotation(org,"gene",refdb)
+			}
         }
         
         if (!from.previous)
@@ -1408,8 +1441,27 @@ metaseqr <- function(
                     compress=TRUE)
             }
         }
-        else # Retrieved gene model and/or previous analysis
+        # Retrieved gene model and/or previous analysis
+        else if (annotation !="embedded" && from.previous)
             the.counts <- counts
+        else if (annotation=="embedded") {
+			# First time read, construct gene model
+			disp("Checking chromosomes in exon counts and gene annotation...")
+            gene.data <- reduce.gene.data(exon.data[rownames(exon.counts),],
+                gene.data)
+            disp("Processing exons...")
+            the.counts <- construct.gene.model(exon.counts,sample.list,
+                gene.data,multic=multic)
+
+            if (save.gene.model)
+            {
+                disp("Saving gene model to ",file.path(PROJECT.PATH[["data"]],
+                    "gene_model.RData"))
+                save(the.counts,exon.data,gene.data,sample.list,count.type,
+                    file=file.path(PROJECT.PATH$data,"gene_model.RData"),
+                    compress=TRUE)
+            }
+		}
             
         # Exclude any samples not wanted (when e.g. restoring a previous project
         # and having determined that some samples are of bad quality
@@ -1456,6 +1508,204 @@ metaseqr <- function(
         # file, due to e.g. slightly different Ensembl versions
         gene.data <- gene.data[rownames(gene.counts),]
         total.gene.data <- gene.data # We need this for some total stats
+    }
+    if (count.type=="utr")
+    {
+        # Download gene annotation anyway if not previous analysis restored
+        if (!from.previous) 
+        {
+            if (org=="custom") 
+            {
+				if (!is.null(gene.file) && file.exists(gene.file)) 
+				{
+					disp("Reading custom external gene annotation for from ",
+						gene.file,"...")
+					gene.data <- read.delim(gene.file)
+					rownames(gene.data) <- as.character(gene.data$gene_id)
+					if (!is.null(gene.data$gc_content) # Already divided
+						&& max(as.numeric(gene.data$gc_content))<=1)
+						gene.data$gc_content = 
+							100*as.numeric(gene.data$gc_content)
+				}
+			}
+			else
+			{
+				disp("Downloading gene annotation for ",org,"...")
+				gene.data <- get.annotation(org,"gene",refdb)
+			}
+        }
+        
+        if (!from.previous)
+        {
+            if (annotation=="download")
+            {
+                disp("Downloading transcript annotation for ",org,"...")
+                transcript.data <- get.annotation(org,count.type,refdb,multic)
+            }
+            else if (annotation=="embedded")
+            {
+                # The following should work if annotation elements are arranged in 
+                # MeV-like data style
+                # Embedded annotation can NEVER occur when receiving data from 
+                # read2count, so there is no danger here
+                if (!is.data.frame(counts))
+                {
+                    disp("Reading counts file ",counts.name,"...")
+                    transcript.counts <- read.delim(counts)
+                }
+                else
+                    transcript.counts <- counts
+                rownames(transcript.counts) <- as.character(transcript.counts[,id.col])
+                all.cols <- 1:ncol(transcript.counts)
+                sam.cols <- match(unlist(sample.list),colnames(transcript.counts))
+                sam.cols <- sam.cols[which(!is.na(sam.cols))]
+                ann.cols <- all.cols[-sam.cols]
+                transcript.data <- transcript.counts[,ann.cols]
+                transcript.counts <- transcript.counts[,sam.cols]
+                colnames(transcript.data)[id.col] <- "transcript_id"
+                if (!is.na(name.col)) colnames(transcript.data)[name.col] <- 
+                    "gene_name"
+                if (!is.na(bt.col)) colnames(transcript.data)[bt.col] <- "biotype"
+                transcript.counts <- cbind(transcript.data[rownames(transcript.counts),c("start",
+                    "end","transcript_id","gene_id")],transcript.counts)
+            }
+            else # Reading from external file, similar to embedded
+            {
+                disp("Reading external transcript annotation for ",org," from ",
+                    annotation,"...")
+                transcript.data <- read.delim(annotation)
+                colnames(transcript.data)[id.col] <- "transcript_id"
+            }
+        }
+        else
+        {
+            counts <- tmp.env$the.counts
+            transcript.data <- tmp.env$transcript.data
+            gene.data <- tmp.env$gene.data
+        }
+
+        # Else everything is provided and done
+        #if (is.data.frame(counts))
+        if (annotation!="embedded" & !from.previous)
+        {
+            if (!is.null(counts)) # Otherwise it's coming ready from read2count
+            {
+                if (!is.data.frame(counts) && !is.list(counts))
+                {
+                    disp("Reading counts file ",counts.name,"...")
+                    transcript.counts <- read.delim(counts)
+                }
+                else # Already a data frame as input
+                    transcript.counts <- counts
+                rownames(transcript.counts) <- as.character(transcript.counts[,id.col])
+                transcript.counts <- transcript.counts[,unlist(sample.list,
+                    use.names=FALSE)]
+            }
+            else # Coming from read2count
+            {
+                if (from.raw) # Double check
+                {
+                    r2c <- read2count(the.list,transcript.data,file.type,
+                        multic=multic)
+                    transcript.counts <- r2c$counts
+                    # Merged transcript data!
+                    transcript.data <- r2c$mergedann
+                    if (is.null(libsize.list))
+                        libsize.list <- r2c$libsize
+                    if (export.counts.table) {
+                        disp("Exporting raw read counts table to ",
+                            file.path(PROJECT.PATH[["lists"]],
+                            "raw_counts_table.txt.gz"))
+                        res.file <- file.path(PROJECT.PATH[["lists"]],
+                            "raw_counts_table.txt.gz")
+                        gzfh <- gzfile(res.file,"w")
+                        write.table(cbind(
+                            transcript.data[rownames(transcript.counts),],
+                            transcript.counts),gzfh,sep="\t",row.names=FALSE,
+                            quote=FALSE)
+                        close(gzfh)
+                    }
+                }
+            }
+            transcript.counts <- cbind(transcript.data[rownames(transcript.counts),c("start",
+                "end","transcript_id","gene_id")],transcript.counts[,unlist(sample.list,
+                use.names=FALSE)])
+
+            # Get the transcript counts per gene model
+            disp("Checking chromosomes in transcript counts and gene annotation...")
+            gene.data <- reduce.gene.data(transcript.data[rownames(transcript.counts),],
+                gene.data)
+            disp("Processing transcripts...")
+            the.counts <- construct.utr.model(transcript.counts,sample.list,
+                gene.data,multic=multic)
+
+            if (save.gene.model)
+            {
+                disp("Saving gene model to ",file.path(PROJECT.PATH[["data"]],
+                    "gene_model.RData"))
+                save(the.counts,transcript.data,gene.data,sample.list,count.type,
+                    file=file.path(PROJECT.PATH$data,"gene_model.RData"),
+                    compress=TRUE)
+            }
+        }
+        # Retrieved gene model and/or previous analysis
+        else if (annotation !="embedded" && from.previous)
+            the.counts <- counts
+        else if (annotation=="embedded") {
+			# First time read, construct gene model
+			disp("Checking chromosomes in transcript counts and gene annotation...")
+            gene.data <- reduce.gene.data(transcript.data[rownames(transcript.counts),],
+                gene.data)
+            disp("Processing transcripts...")
+            the.counts <- construct.utr.model(transcript.counts,sample.list,
+                gene.data,multic=multic)
+
+            if (save.gene.model)
+            {
+                disp("Saving gene model to ",file.path(PROJECT.PATH[["data"]],
+                    "gene_model.RData"))
+                save(the.counts,transcript.data,gene.data,sample.list,count.type,
+                    file=file.path(PROJECT.PATH$data,"gene_model.RData"),
+                    compress=TRUE)
+            }
+		}
+            
+        # Exclude any samples not wanted (when e.g. restoring a previous project
+        # and having determined that some samples are of bad quality
+        if (!is.null(exclude.list) && !is.na(exclude.list))
+        {
+            for (n in names(exclude.list)) {
+                sample.list[[n]] <- setdiff(sample.list[[n]],
+                    exclude.list[[n]])
+                if (length(sample.list[[n]])==0) # Removed whole condition
+                    sample.list[n] <- NULL
+            }
+            the.counts <- the.counts[unlist(sample.list)]
+        }
+
+        disp("Summarizing count data...")
+        the.gene.counts <- the.transcript.lengths <- vector("list",
+            length(unlist(sample.list)))
+        names(the.gene.counts) <- names(the.transcript.lengths) <- names(the.counts)
+        for (n in names(the.gene.counts))
+        {
+            the.gene.counts[[n]] <- wapply(multic,the.counts[[n]],
+                function(x) return(sum(x$count)))
+            the.transcript.lengths[[n]] <- wapply(multic,the.counts[[n]],
+                function(x) return(sum(x$length)))
+            the.gene.counts[[n]] <- do.call("c",the.gene.counts[[n]])
+            the.transcript.lengths[[n]] <- do.call("c",the.transcript.lengths[[n]])
+        }
+        gene.counts <- do.call("cbind",the.gene.counts)
+        gene.length <- the.transcript.lengths[[1]] # Based on the sum of their transcript lengths
+        names(gene.length) <- rownames(gene.data)
+        
+        # In case there are small differences between annotation data and external 
+        # file, due to e.g. slightly different Ensembl versions
+        gene.data <- gene.data[rownames(gene.counts),]
+        total.gene.data <- gene.data # We need this for some total stats
+        
+        exon.filter.result <- NULL
     }
     else if (count.type=="gene")
     {
@@ -1600,7 +1850,12 @@ metaseqr <- function(
     ############################################################################
     # BEGIN FILTERING SECTION
     ############################################################################
-
+    
+    if (is.function(progress.fun)) {
+        text <- paste("Filtering...")
+        progress.fun(detail=text)
+    }
+    
     # GC bias is NOT alleviated if we do not remove the zeros!!!
     disp("Removing genes with zero counts in all samples...")
     the.zeros <- which(apply(gene.counts,1,filter.low,0))
@@ -1703,7 +1958,12 @@ metaseqr <- function(
             gene.data.expr <- gene.data
             gene.counts.dead <- gene.data.dead <- gene.counts.unnorm <- NULL
         }
-
+        
+        if (is.function(progress.fun)) {
+            text <- paste("Normalizing...")
+            progress.fun(detail=text)
+        }
+        
         disp("Normalizing with: ",normalization)
         switch(normalization,
             edaseq = {
@@ -1734,6 +1994,11 @@ metaseqr <- function(
     }
     else if (when.apply.filter=="postnorm")
     {
+        if (is.function(progress.fun)) {
+            text <- paste("Normalizing...")
+            progress.fun(detail=text)
+        }
+        
         # Apply filtering after normalization if desired (default)
         disp("Normalizing with: ",normalization)
         switch(normalization,
@@ -1897,6 +2162,11 @@ metaseqr <- function(
         stopwrap("No genes left after gene and/or exon filtering! Try again ",
             "with no filtering or less strict filter rules...")
 
+    if (is.function(progress.fun)) {
+        text <- paste("Statistical testing...")
+        progress.fun(detail=text)
+    }
+    
     # Run the statistical test, norm.genes is always a method-specific object,
     # handled in the metaseqr.stat.R stat.* functions
     cp.list <- vector("list",length(contrast))
@@ -2067,8 +2337,15 @@ metaseqr <- function(
     # BEGIN EXPORT SECTION
     ############################################################################
 
+    if (is.function(progress.fun)) {
+        text <- paste("Exporting...")
+        progress.fun(detail=text)
+    }
+
     # Bind all the flags
     if (count.type=="gene")
+        flags <- gene.filter.flags
+    else if (count.type=="utr")
         flags <- gene.filter.flags
     else if (count.type=="exon")
     {
@@ -2326,6 +2603,11 @@ metaseqr <- function(
     ############################################################################
     # BEGIN PLOTTING SECTION
     ############################################################################
+    
+    if (is.function(progress.fun)) {
+        text <- paste("Plotting...")
+        progress.fun(detail=text)
+    }
     
     if (!is.null(qc.plots))
     {
@@ -2722,6 +3004,64 @@ construct.gene.model <- function(exon.counts,sample.list,
             names(xx) <- names(yy) <- tmp$exon_id
             return(list(count=xx,length=yy))
         },exon.counts,n)
+    }
+    return(the.counts)
+}
+
+#' Assemble a gene model based on 3' UTR counts for quant-seq data
+#'
+#' This function assembles gene models (single genes, not isoforms) based on the
+#' input read counts file (3' UTRs) and a gene annotation data frame, either from an
+#' external file provided by the user, or with the \code{\link{get.annotation}}
+#' function. The \code{gene.data} argument should have a specific format and for
+#' this reason it's better to use one of the two aforementioned ways to supply it.
+#' This function is intended mostly for internal use but can be used if the
+#' requirements are met.
+#'
+#' @param utr.counts the utr counts data frame produced by reading the exon read
+#' counts file.
+#' @param sample.list the list containing condition names and the samples under
+#' each condition.
+#' @param gene.data an annotation data frame from the same organism as
+#' \code{utr.counts} (such the ones produced by \code{get.annotation}).
+#' @param multic a logical value indicating the presence of multiple cores. Defaults
+#' to \code{FALSE}. Do not change it if you are not sure whether package parallel
+#' has been loaded or not.
+#' @return A named list where names represent samples. Each list member is a also
+#' a named list where names correspond to gene ids and members are named vectors.
+#' Each vector is named according to the transcripts corresponding to each gene and
+#' contains the read counts for each UTR regions. This structure is used for 
+#' assembling final gene counts in the metaseqr pipeline.
+#' @author Panagiotis Moulos
+#' @export
+#' @examples
+#' @examples
+#' \dontrun{
+#' data("hg19.exon.data",package="metaseqR")
+#' gene.data <- get.annotation("hg19","gene","ensembl")
+#' reduced.gene.data <- reduce.gene.data(hg19.exon.counts,gene.data)
+#' multic <- check.parallel(0.4)
+#' gene.model <- construct.gene.model(hg19.exon.counts,sample.list.hg19,gene.data,
+#'   multic)
+#'}
+construct.utr.model <- function(utr.counts,sample.list,
+    gene.data,multic=FALSE) {
+    the.counts <- vector("list",length(unlist(sample.list)))
+    names(the.counts) <- unlist(sample.list,use.names=FALSE)
+    the.genes <- as.character(unique(gene.data$gene_id))
+    for (n in names(the.counts))
+    {
+        disp("  Separating transcripts (UTR regions) per gene for ",n,"...")
+        #the.counts[[n]] <- vector("list",length(the.genes))
+        the.counts[[n]] <- the.genes
+        names(the.counts[[n]]) <- the.genes
+        the.counts[[n]] <- wapply(multic,the.counts[[n]],function(x,d,n) {
+            tmp <- d[which(d$gene_id==x),c("start","end","transcript_id",n)]
+            xx <- tmp[,n]
+            yy <- tmp$end - tmp$start
+            names(xx) <- names(yy) <- tmp$exon_id
+            return(list(count=xx,length=yy))
+        },utr.counts,n)
     }
     return(the.counts)
 }
