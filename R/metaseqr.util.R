@@ -1780,7 +1780,7 @@ make.transformation <- function(data.matrix,export.scale,
                 mat[[scl]] <- nat2log(data.matrix,base=10,off=log.offset)
             },
             vst = {
-                fit <- vsn:::vsn2(data.matrix,verbose=FALSE)
+                fit <- vsn2(data.matrix,verbose=FALSE)
                 mat[[scl]] <- predict(fit,newdata=data.matrix)
             },
             rpgm = {
