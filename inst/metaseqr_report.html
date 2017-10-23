@@ -231,7 +231,7 @@
                                         counter <- 0
                                         msg.gene.filters.length <- msg.gene.filters.expression.median <- msg.gene.filters.expression.mean <-
                                         msg.gene.filters.expression.quantile <- msg.gene.filters.expression.known <- msg.gene.filters.expression.custom <-
-                                        msg.gene.filters.biotype <- msg.gene.filters.avg.reads <- NULL
+                                        msg.gene.filters.biotype <- msg.gene.filters.avg.reads <- msg.gene.filters.presence <- NULL
                                         if (!is.null(gene.filters$length)) {
                                             counter <- counter + 1
                                             msg.gene.filters.length <- paste(
@@ -299,8 +299,18 @@
                                                 " (",length(gene.filter.result$biotype)," genes)",sep=""
                                             )
                                         }
+                                        if (!is.null(gene.filters$presence)) {
+                                            counter <- counter + 1
+                                            msg.gene.filters.presence <- paste(
+                                                latin.numbered[counter]," genes where ",gene.filters$presence$frac*100,"% of samples were not above ",gene.filters$presence$min.count," counts (",length(gene.filter.result$presence)," genes)",sep=""
+                                            )
+                                            if (gene.filters$presence$per.condition)
+												msg.gene.filters.presence <- paste(msg.gene.filters.presence," condition-wise",sep="")
+											else
+												msg.gene.filters.presence <- paste(msg.gene.filters.presence," across all samples",sep="")
+                                        }
                                         cat(msg.gene.filters.length,msg.gene.filters.avg.reads,msg.gene.filters.expression.median,msg.gene.filters.expression.mean,
-                                            msg.gene.filters.expression.quantile,msg.gene.filters.expression.known,msg.gene.filters.expression.custom,sep=", ")
+                                            msg.gene.filters.expression.quantile,msg.gene.filters.expression.known,msg.gene.filters.expression.custom,msg.gene.filters.biotype,msg.gene.filters.presence,sep=", ")
                                         cat(". The total number of genes excluded due to the application of gene filters was ",sum(as.numeric(sapply(gene.filter.result,length))),". ",sep="")
                                         cat("The total (unified) number of genes excluded due to the application of all filters was ",length(the.zeros) + length(the.dead),". ",sep="")
                                     }
@@ -395,6 +405,11 @@
                                     <strong>Organism:</strong> <%=report.messages$org[[org]]%></br>
                                     <strong>Annotation source:</strong> <%=report.messages$refdb[[refdb]]%></br>
                                     <strong>Count type:</strong> <%=count.type%></br>
+                                    <%=
+                                    if (count.type=="utr" && utr.flank>0) {
+										cat("<strong>3' UTR flanking :</strong>: ",utr.flank,"</br>")
+									}
+									%>
                                     <strong>Exon filters:</strong>
                                     <%=
                                     if (!is.null(exon.filters)) {

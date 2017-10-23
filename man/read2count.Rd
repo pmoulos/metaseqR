@@ -3,7 +3,7 @@
 \title{SAM/BAM/BED file reader helper for the metaseqr pipeline}
 \usage{
     read2count(targets, annotation, file.type = targets$type,
-        has.all.fields = FALSE, multic = FALSE)
+        utr.flank = 500, has.all.fields = FALSE, multic = FALSE)
 }
 \arguments{
     \item{targets}{a named list, the output of 
@@ -20,6 +20,9 @@
     for SAM/BAM files. See the same argument in the main
     \code{\link{metaseqr}} function for the case of
     auto-guessing.}
+    
+    \item{utr.flank}{the number of base pairs to flank the
+    3' UTR of transcripts when analyzing Quant-Seq data.}
 
     \item{has.all.fields}{a logical variable indicating if
     all annotation fields used by \code{metaseqr} are

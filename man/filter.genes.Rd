@@ -2,7 +2,8 @@
 \alias{filter.genes}
 \title{Filter gene expression based on gene counts}
 \usage{
-    filter.genes(gene.counts, gene.data, gene.filters)
+    filter.genes(gene.counts, gene.data, gene.filters,
+    sample.list)
 }
 \arguments{
     \item{gene.counts}{a matrix of gene counts, preferably
@@ -15,6 +16,9 @@
     \item{gene.filters}{a named list with gene filters and
     their parameters. See the main help page of
     \code{\link{metaseqr}} for details.}
+    
+    \item{sample.list}{the list containing condition names 
+    and the samples under each condition.}
 }
 \value{
     a named list with three members. The first member 
@@ -44,7 +48,7 @@ gene.counts <- normalize.edger(as.matrix(gene.counts[,9:12]),
 gene.data <- get.annotation("mm9","gene")
 gene.filters <- get.defaults("gene.filter","mm9")
 filter.results <- filter.genes(gene.counts,gene.data,
-    gene.filters)
+    gene.filters,sample.list)
 }
 }
 \author{

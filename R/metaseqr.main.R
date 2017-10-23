@@ -794,6 +794,7 @@ metaseqr <- function(
         "danrer7","pantro4","susscr3","tair10","custom"),
     refdb=c("ensembl","ucsc","refseq"),
     count.type=c("gene","exon","utr"),
+    utr.flank=500,
     exon.filters=list(
         min.active.exons=list(
             exons.per.gene=5,
@@ -816,7 +817,12 @@ metaseqr <- function(
             known=NA,
             custom=NA
         ),
-        biotype=get.defaults("biotype.filter",org[1])
+        biotype=get.defaults("biotype.filter",org[1]),
+        presence=list(
+			frac=0.25,
+			min.count=10,
+			per.condition=FALSE
+        )
     ),
     when.apply.filter=c("postnorm","prenorm"),
     normalization=c("edaseq","deseq","edger","noiseq","nbpseq","each","none"),
@@ -1071,6 +1077,7 @@ metaseqr <- function(
     if (!is.na(log.offset)) check.num.args("log.offset",log.offset,"numeric",0,
         "gt")
     check.num.args("nperm",nperm,"numeric",10,"gt")
+    check.num.args("utr.flank",utr.flank,"numeric")
     if (!is.null(report.top))
         check.num.args("report.top",report.top,"numeric",c(0,1),"both")
     if (!is.null(contrast)) check.contrast.format(contrast,sample.list)
@@ -1201,6 +1208,8 @@ metaseqr <- function(
     disp("Organism: ",org)
     disp("Reference source: ",refdb)
     disp("Count type: ",count.type)
+    if (count.type == "utr")
+		disp("3' UTR flanking: ",utr.flank)
     if (!is.null(preset))
         disp("Analysis preset: ",preset)
     if (!is.null(exon.filters))
@@ -1399,7 +1408,7 @@ metaseqr <- function(
                 if (from.raw) # Double check
                 {
                     r2c <- read2count(the.list,exon.data,file.type,
-                        multic=multic)
+                        utr.flank,multic=multic)
                     exon.counts <- r2c$counts
                     # Merged exon data!
                     exon.data <- r2c$mergedann
@@ -1606,7 +1615,7 @@ metaseqr <- function(
                 if (from.raw) # Double check
                 {
                     r2c <- read2count(the.list,transcript.data,file.type,
-                        multic=multic)
+                        utr.flank,multic=multic)
                     transcript.counts <- r2c$counts
                     # Merged transcript data!
                     transcript.data <- r2c$mergedann
@@ -1793,7 +1802,7 @@ metaseqr <- function(
                 if (from.raw) # Double check
                 {
                     r2c <- read2count(the.list,gene.data,file.type,
-                        multic=multic)
+                        utr.flank,multic=multic)
                     gene.counts <- r2c$counts
                     if (is.null(libsize.list))
                         libsize.list <- r2c$libsize
@@ -1914,7 +1923,8 @@ metaseqr <- function(
         # Now filter
         if (!is.null(gene.filters))
         {
-            gene.filter.out <- filter.genes(temp.genes,gene.data,gene.filters)
+            gene.filter.out <- filter.genes(temp.genes,gene.data,gene.filters,
+				sample.list)
             gene.filter.result <- gene.filter.out$result
             gene.filter.cutoff <- gene.filter.out$cutoff
             gene.filter.flags <- gene.filter.out$flags
@@ -2054,7 +2064,8 @@ metaseqr <- function(
 
         # Implement gene filters after normalization
         if (!is.null(gene.filters)) {
-            gene.filter.out <- filter.genes(temp.matrix,gene.data,gene.filters)
+            gene.filter.out <- filter.genes(temp.matrix,gene.data,gene.filters,
+				sample.list)
             gene.filter.result <- gene.filter.out$result
             gene.filter.cutoff <- gene.filter.out$cutoff
             gene.filter.flags <- gene.filter.out$flags

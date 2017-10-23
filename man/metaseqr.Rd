@@ -13,13 +13,16 @@
             "custom"),
         refdb = c("ensembl", "ucsc", "refseq"),
         count.type = c("gene", "exon","utr"),
+        utr.flank = 500,
         exon.filters = list(min.active.exons = list(exons.per.gene = 5, 
                 min.exons = 2, frac = 1/5)),
         gene.filters = list(length = list(length = 500), 
                 avg.reads = list(average.per.bp = 100, quantile = 0.25), 
                 expression = list(median = TRUE, mean = FALSE, quantile = NA, 
-                        known = NA, custom = NA), 
-                biotype = get.defaults("biotype.filter", org[1])),
+                    known = NA, custom = NA), 
+                biotype = get.defaults("biotype.filter", org[1]),
+                presence = list(frac = 0.25, min.count = 10,
+					per.condition = FALSE)),
         when.apply.filter = c("postnorm", "prenorm"),
         normalization = c("edaseq", "deseq", "edger", "noiseq", "nbpseq", 
                 "each", "none"),
@@ -239,6 +242,9 @@
     \code{"utr"} for quant seq (lexogen) protocol. This is
     a very important and mandatory parameter as it defines
     the course of the workflow.}
+    
+    \item{utr.flank}{the number of base pairs to flank the
+    3' UTR of transcripts when analyzing Quant-Seq data.}
 
     \item{exon.filters}{a named list whose names are the
     names of the supported exon filters and its members the
@@ -792,7 +798,12 @@
     \code{get.defaults("biotype.filter","hg19")} for an
     example. Finally, in future versions there will be
     support for user-defined filters in the form of a
-    function.
+    function. v) \code{presence} where in this case, a gene
+    is further considered for statistical testing if 
+    \code{frac} (x100 for a percentage value) have more
+    than \code{min.count} reads across all samples
+    (\code{per.condition=FALSE}) or across the samples
+    of each condition (\code{per.condition=TRUE}).
 }
 
 \section{Normalization parameters}{

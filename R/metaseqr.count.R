@@ -33,7 +33,7 @@
 #' gene.counts <- r2c$counts
 #' libsize.list <- r2s$libsize
 #'}
-read2count <- function(targets,annotation,file.type=targets$type,
+read2count <- function(targets,annotation,file.type=targets$type,utr.flank=500,
     has.all.fields=FALSE,multic=FALSE) {
     if (missing(targets))
         stopwrap("You must provide the targets argument!")
@@ -120,10 +120,14 @@ read2count <- function(targets,annotation,file.type=targets$type,
         else {
             disp("Merging transcript 3' UTRs to create unique gene/transcript models...")
             annotation.gr <- reduce.transcripts.utr(annotation.gr,multic=multic)
-            disp("Flanking merged transcript 3' UTRs per 500bp...")
-            w <- width(annotation.gr)
-            annotation.gr <- promoters(annotation.gr,upstream=500,downstream=0)
-            annotation.gr <- resize(annotation.gr,width=w+1000)
+            if (utr.flank > 0) {
+				disp("Flanking merged transcript 3' UTRs per ",utr.flank,
+					"bp...")
+				w <- width(annotation.gr)
+				annotation.gr <- promoters(annotation.gr,upstream=utr.flank,
+					downstream=0)
+				annotation.gr <- resize(annotation.gr,width=w+2*utr.flank)
+			}
             #merged.annotation <- as.data.frame(annotation.gr) # Bug?
             merged.annotation <- data.frame(
                 chromosome=as.character(seqnames(annotation.gr)),
@@ -238,7 +242,7 @@ read2count <- function(targets,annotation,file.type=targets$type,
             }
             else {
                 singleEnd <- TRUE
-                fragments <- FALSE
+                fragments <- FALSEas.
                 asMates <- FALSE
             }
             if (!is.null(stranded)) {

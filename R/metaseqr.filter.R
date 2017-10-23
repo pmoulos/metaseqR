@@ -119,14 +119,14 @@ filter.exons <- function(the.counts,gene.data,sample.list,exon.filters,
 #' gene.filters <- get.defaults("gene.filter","mm9")
 #' filter.results <- filter.genes(gene.counts,gene.data,gene.filters)
 #'}
-filter.genes <- function(gene.counts,gene.data,gene.filters) {
+filter.genes <- function(gene.counts,gene.data,gene.filters,sample.list) {
     gene.filter.result <- gene.filter.cutoff <- vector("list",
         length(gene.filters))
     names(gene.filter.result) <- names(gene.filter.cutoff) <-
         names(gene.filters)
-    flags <- matrix(0,nrow(gene.counts),8)
+    flags <- matrix(0,nrow(gene.counts),9)
     rownames(flags) <- rownames(gene.counts)
-    colnames(flags) <- c("LN","AR","MD","MN","QN","KN","CM","BT")
+    colnames(flags) <- c("LN","AR","MD","MN","QN","KN","CM","BT","PR")
     for (gf in names(gene.filters)) {
         disp("Applying gene filter ",gf,"...")
         switch(gf,
@@ -269,7 +269,56 @@ filter.genes <- function(gene.counts,gene.data,gene.filters) {
                 if (!is.null(gene.filter.result$biotype) && 
                     length(gene.filter.result$biotype)>0) 
                     flags[gene.filter.result$biotype,"BT"] <- 1
-            }
+            },
+            presence = {
+				if (!is.null(gene.filters$presence)) {
+                    frac <- gene.filters$presence$frac
+                    minc <- gene.filters$presence$min.count
+                    pc <- gene.filters$presence$per.condition
+                    
+                    if (pc) {
+						np.tmp <- nam.tmp <- vector("list",length(sample.list))
+						names(np.tmp) <- names(nam.tmp) <- names(sample.list)
+						for (n in names(sample.list)) {
+							tmp <- gene.counts[,sample.list[[n]]]
+							nreq <- ceiling(frac*ncol(tmp))
+							np.tmp[[n]] <- apply(tmp,1,function(x,m,n) {
+								w <- which(x>=m)
+								if (length(w)>0 && length(w)>n)
+									return(FALSE)
+								return(TRUE)
+							},minc,nreq)
+							nam.tmp[[n]] <- rownames(tmp[which(np.tmp[[n]]),,
+								drop=FALSE])
+						}
+						the.dead.presence <- Reduce("union",nam.tmp)
+					}
+					else {
+						nreq <- ceiling(frac*ncol(gene.counts))
+						not.present <- apply(gene.counts,1,function(x,m,n) {
+							w <- which(x>=m)
+							if (length(w)>0 && length(w)>n)
+								return(FALSE)
+							return(TRUE)
+						},minc,nreq)
+						the.dead.presence <- 
+							rownames(gene.counts[which(not.present),,
+								drop=FALSE])
+					}
+                    
+                    if (length(the.dead.presence)>0) {
+						gene.filter.result$presence <- the.dead.presence
+						flags[the.dead.presence,"PR"] <- 1
+						gene.filter.cutoff$presence <- nreq
+						disp("  Threshold below which ignored: ",nreq)
+					}
+					else
+						gene.filter.result$presence <- 
+							gene.filter.cutoff$presence <- NULL
+                }
+                else
+                    gene.filter.result$presence <- NULL
+			}
         )
     }
     return(list(result=gene.filter.result,cutoff=gene.filter.cutoff,

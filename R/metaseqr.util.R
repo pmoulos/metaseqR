@@ -215,7 +215,12 @@ get.defaults <- function(what,method=NULL) {
                     known=NA,
                     custom=NA
                 ),
-                biotype=get.defaults("biotype.filter",method[1])
+                biotype=get.defaults("biotype.filter",method[1]),
+                presence=list(
+					frac=0.25,
+					min.count=10,
+					per.condition=FALSE
+				)
             ))
         },
         exon.filter = {
@@ -792,7 +797,7 @@ validate.list.args <- function(what,method=NULL,arg.list) {
         },
         gene.filter = {
             valid.1 <- names(arg.list) %in% c("length","avg.reads","expression",
-                "biotype")
+                "biotype","presence")
             not.valid.1 <- which(!valid.1)
             if (length(not.valid.1)>0) {
                 warnwrap(paste("The following",method,what,"argument names",
@@ -816,7 +821,12 @@ validate.list.args <- function(what,method=NULL,arg.list) {
                             valid.2 <- names(arg.list[[n]]) %in% c("median",
                                 "mean","quantile","known","custom")
                             not.valid.2 <- which(!valid.2)
-                        }
+                        },
+                        presence = {
+							valid.2 <- names(arg.list[[n]]) %in% c("frac",
+                                "min.count","per.condition")
+                            not.valid.2 <- which(!valid.2)
+						}
                     )
                     if (length(not.valid.2)>0) {
                         warnwrap(paste("The following",method,what,

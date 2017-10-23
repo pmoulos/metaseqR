@@ -379,3 +379,19 @@ BUG FIXES
     o Fixed importing of external gene file for non-supporting
     organism when count.type is "exon" or "utr"
 
+CHANGES IN VERSION 1.17.4 (2017-10-06)
+--------------------------------------
+
+NEW FEATURES
+
+    o New option: utr.flank for counting reads in 3' UTR flank regions when
+    analyzing Quant-Seq data.
+    o New gene filter: genes where x samples present less than y counts are
+    excluded from statistical testing. x is determined as a fraction of 
+    available samples.
+
+BUG FIXES
+
+    o Fixed bug in problematic backwards compatibility of strandedness in
+    targets files which caused strandedness to be ignored (thans to Martin 
+    Reczko, BSRC 'Alexander Fleming').
