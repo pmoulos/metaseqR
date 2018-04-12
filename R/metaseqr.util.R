@@ -492,6 +492,18 @@ get.defaults <- function(what,method=NULL) {
                         transposable_element=FALSE,
                         tRNA=FALSE
                     ))
+                },
+                equcab2 = {
+                    return(list(
+                        miRNA=FALSE,
+                        misc_RNA=FALSE,
+                        protein_coding=FALSE,
+                        pseudogene=FALSE,
+                        processed_pseudogene=FALSE,
+                        rRNA=TRUE,
+                        snoRNA=FALSE,
+                        snRNA=FALSE
+                    ))
                 }
             )
         }
@@ -953,6 +965,11 @@ validate.list.args <- function(what,method=NULL,arg.list) {
                         "protein_coding","pseudogene","rRNA","snoRNA",
                         "snRNA","transposable_element","tRNA")
                     not.valid <- which(!valid)
+                },
+                equcab2 = {
+					valid <- names(arg.list) %in% c("miRNA","misc_RNA",
+						"protein_coding","pseudogene","processed_pseudogene",
+						"rRNA","snoRNA","snRNA")
                 }
             )
             if (length(not.valid)>0) {
@@ -1216,7 +1233,19 @@ get.strict.biofilter <- function(org) {
                 transposable_element=FALSE,
                 tRNA=TRUE
             ))
-        }
+        },
+        equcab2 = {
+			return(list(
+				miRNA=FALSE,
+				misc_RNA=TRUE,
+				protein_coding=FALSE,
+				pseudogene=FALSE,
+				processed_pseudogene=FALSE,
+				rRNA=TRUE,
+				snoRNA=TRUE,
+				snRNA=TRUE
+			))
+		}
     )
 }
 

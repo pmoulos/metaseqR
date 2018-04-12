@@ -14,7 +14,7 @@ check.main.args <- function(main.args) {
     valid.args <- c(
         "counts","sample.list","exclude.list","file.type","path","contrast",
         "libsize.list","id.col","gc.col","name.col","bt.col","annotation",
-        "gene.file","org","count.type","utr.flank","exon.filters",
+        "gene.file","org","trans.level","count.type","utr.flank","exon.filters",
         "gene.filters","when.apply.filter","normalization","norm.args",
         "statistics","stat.args","adjust.method","meta.p","weight","nperm",
         "reprod","pcut","log.offset","preset","qc.plots","fig.format",
@@ -280,6 +280,9 @@ check.contrast.format <- function(cnt,sample.list) {
         stopwrap("Condition names in sample list and contrast list do not ",
             "match! Check if the contrasts follow the appropriate format (e.g.",
             " \"_vs_\" separating contrasting conditions...")
+    if (length(unique(cnt))!=length(cnt))
+        warnwrap("Duplicates found in the contrasts list! Duplicates will be ",
+            "ignored...")
 }
 
 #' Library size validator

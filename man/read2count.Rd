@@ -3,7 +3,8 @@
 \title{SAM/BAM/BED file reader helper for the metaseqr pipeline}
 \usage{
     read2count(targets, annotation, file.type = targets$type,
-        utr.flank = 500, has.all.fields = FALSE, multic = FALSE)
+        trans.level = "gene", utr.flank = 500, 
+        has.all.fields = FALSE, multic = FALSE)
 }
 \arguments{
     \item{targets}{a named list, the output of 
@@ -23,6 +24,9 @@
     
     \item{utr.flank}{the number of base pairs to flank the
     3' UTR of transcripts when analyzing Quant-Seq data.}
+    
+    \item{trans.level}{see the \code{trans.level} argument
+    in the main \code{\link{metaseqr}} function.}
 
     \item{has.all.fields}{a logical variable indicating if
     all annotation fields used by \code{metaseqr} are

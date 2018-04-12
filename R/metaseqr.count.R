@@ -33,8 +33,8 @@
 #' gene.counts <- r2c$counts
 #' libsize.list <- r2s$libsize
 #'}
-read2count <- function(targets,annotation,file.type=targets$type,utr.flank=500,
-    has.all.fields=FALSE,multic=FALSE) {
+read2count <- function(targets,annotation,file.type=targets$type,
+	trans.level="gene",utr.flank=500,has.all.fields=FALSE,multic=FALSE) {
     if (missing(targets))
         stopwrap("You must provide the targets argument!")
     if (missing(annotation))
@@ -85,13 +85,20 @@ read2count <- function(targets,annotation,file.type=targets$type,utr.flank=500,
     # to multiple transcripts, so as to avoid inflating the final read count when
     # summing all exons
     inter.feature <- FALSE
-    if (length(grep("exon",colnames(annotation)))>0) {
+    if (length(grep("exon",colnames(annotation)))>0) { # count.type is exon
         if (length(grep("MEX",annotation$exon_id[1]))) # Retrieved from previous
             merged.annotation <- annotation
         else {
-            disp("Merging exons to create unique gene models...")
-            annotation.gr <- reduce.exons(annotation.gr,multic=multic)
-            #merged.annotation <- as.data.frame(annotation.gr) # Bug?
+			if (trans.level=="gene") {
+				disp("Merging exons to create unique gene models...")
+				annotation.gr <- reduce.exons(annotation.gr,multic=multic)
+				#merged.annotation <- as.data.frame(annotation.gr) # Bug?
+			}
+			#else if (trans.level=="transcript") {
+			#	disp("Merging exons to create unique gene models...")
+			#	annotation.gr <- reduce.exons.transcript(annotation.gr,
+			#		multic=multic)
+			#}
             merged.annotation <- data.frame(
                 chromosome=as.character(seqnames(annotation.gr)),
                 start=start(annotation.gr),
@@ -114,13 +121,25 @@ read2count <- function(targets,annotation,file.type=targets$type,utr.flank=500,
                 as.character(merged.annotation$exon_id)
         }
     }
-    else if (length(grep("transcript",colnames(annotation)))>0) {
-        if (length(grep("MET",annotation$transcript_id[1]))) # Retrieved from previous
+    else if (length(grep("transcript",colnames(annotation)))>0) { # count.type may be utr
+        if (length(grep("MET",annotation$transcript_id[1]))
+			|| length(grep("MEU",annotation$transcript_id[1]))) # Retrieved from previous
             merged.annotation <- annotation
         else {
-            disp("Merging transcript 3' UTRs to create unique gene/transcript models...")
-            annotation.gr <- reduce.transcripts.utr(annotation.gr,multic=multic)
-            if (utr.flank > 0) {
+			if (trans.level=="gene") {
+				disp("Merging transcript 3' UTRs to create unique ",
+					"gene models...")
+				annotation.gr <- 
+					reduce.transcripts.utr(annotation.gr,multic=multic)
+			}
+			if (trans.level=="transcript") {
+				disp("Merging transcript 3' UTRs to create unique ",
+					"transcript models...")
+				annotation.gr <- 
+					reduce.transcripts.utr.transcript(annotation.gr,
+						multic=multic)
+			}
+			if (utr.flank > 0) {
 				disp("Flanking merged transcript 3' UTRs per ",utr.flank,
 					"bp...")
 				w <- width(annotation.gr)
@@ -128,27 +147,27 @@ read2count <- function(targets,annotation,file.type=targets$type,utr.flank=500,
 					downstream=0)
 				annotation.gr <- resize(annotation.gr,width=w+2*utr.flank)
 			}
-            #merged.annotation <- as.data.frame(annotation.gr) # Bug?
-            merged.annotation <- data.frame(
-                chromosome=as.character(seqnames(annotation.gr)),
-                start=start(annotation.gr),
-                end=end(annotation.gr),
-                transcript_id=if (!is.null(annotation.gr$transcript_id))
-                    as.character(annotation.gr$transcript_id) else
-                    as.character(annotation.gr$name),
-                gene_id=if (!is.null(annotation.gr$gene_id))
-                    as.character(annotation.gr$gene_id) else
-                    as.character(annotation.gr$name),
-                strand=as.character(strand(annotation.gr)),
-                gene_name=if (!is.null(annotation.gr$gene_name))
-                    as.character(annotation.gr$gene_name) else 
-                    if (!is.null(annotation.gr$symbol))
-                    as.character(annotation.gr$name) else NULL,
-                biotype=if (!is.null(annotation.gr$biotype))
-                    as.character(annotation.gr$biotype) else NULL
-            )
-            rownames(merged.annotation) <- 
-                as.character(merged.annotation$transcript_id)
+			#merged.annotation <- as.data.frame(annotation.gr) # Bug?
+			merged.annotation <- data.frame(
+				chromosome=as.character(seqnames(annotation.gr)),
+				start=start(annotation.gr),
+				end=end(annotation.gr),
+				transcript_id=if (!is.null(annotation.gr$transcript_id))
+					as.character(annotation.gr$transcript_id) else
+					as.character(annotation.gr$name),
+				gene_id=if (!is.null(annotation.gr$gene_id))
+					as.character(annotation.gr$gene_id) else
+					as.character(annotation.gr$name),
+				strand=as.character(strand(annotation.gr)),
+				gene_name=if (!is.null(annotation.gr$gene_name))
+					as.character(annotation.gr$gene_name) else 
+					if (!is.null(annotation.gr$symbol))
+					as.character(annotation.gr$name) else NULL,
+				biotype=if (!is.null(annotation.gr$biotype))
+					as.character(annotation.gr$biotype) else NULL
+			)
+			rownames(merged.annotation) <- 
+				as.character(merged.annotation$transcript_id)
         }
         inter.feature = FALSE # Quant-Seq
     }
@@ -242,7 +261,7 @@ read2count <- function(targets,annotation,file.type=targets$type,utr.flank=500,
             }
             else {
                 singleEnd <- TRUE
-                fragments <- FALSEas.
+                fragments <- FALSE
                 asMates <- FALSE
             }
             if (!is.null(stranded)) {
@@ -426,6 +445,38 @@ reduce.transcripts.utr <- function(gr,multic=FALSE) {
     return(do.call("c",red.list))
 }
 
+reduce.transcripts.utr.transcript <- function(gr,multic=FALSE) {
+    trans <- unique(as.character(gr$transcript_id))
+    if (!is.null(gr$gene_name))
+        gn <- gr$gene_name
+    else
+        gn <- NULL
+    if (!is.null(gr$biotype))
+        bt <- gr$biotype   
+    else
+        bt <- NULL
+    red.list <- wapply(multic,trans,function(x,a,g,b) {
+        tmp <- a[a$transcript_id==x]
+        if (!is.null(g))
+            gena <- as.character(tmp$gene_name[1])
+        if (!is.null(b))
+            btty <- as.character(tmp$biotype[1])
+        merged <- reduce(tmp)
+        n <- length(merged)
+        meta <- DataFrame(
+            transcript_id=paste(x,"MEU",1:n,sep="_"),
+            gene_id=rep(x,n)
+        )
+        if (!is.null(g))
+            meta$gene_name <- rep(gena,n)
+        if (!is.null(b))
+            meta$biotype <- rep(btty,n)
+        mcols(merged) <- meta
+        return(merged)
+    },gr,gn,bt)
+    return(do.call("c",red.list))
+}
+
 #' Creates sample list and BAM/BED file list from file
 #'
 #' Create the main sample list and determine the BAM/BED files for each sample
@@ -534,7 +585,7 @@ read.targets <- function(input,path=NULL) {
             whats.strand <- tolower(as.character(tab[,5]))
             if (!all(whats.strand %in% c("yes","no","forward","reverse")))
                 stopwrap("Unknown option for read strandedness in targets file")
-            if (whats.strand %in% c("yes","no")) {
+            if (any(whats.strand=="yes")) {
 				deprecated.warning("read.targets")
 				tmp <- as.character(tab[,5])
 				tmp[tmp=="yes"] <- "forward"

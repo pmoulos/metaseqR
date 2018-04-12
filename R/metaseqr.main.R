@@ -791,8 +791,9 @@ metaseqr <- function(
     annotation=c("download","embedded"),
     gene.file=NULL,
     org=c("hg18","hg19","hg38","mm9","mm10","rn5","rn6","dm3","dm6",
-        "danrer7","pantro4","susscr3","tair10","custom"),
+        "danrer7","pantro4","susscr3","tair10","equcab2","custom"),
     refdb=c("ensembl","ucsc","refseq"),
+    trans.level=c("gene","transcript","exon"),
     count.type=c("gene","exon","utr"),
     utr.flank=500,
     exon.filters=list(
@@ -825,7 +826,7 @@ metaseqr <- function(
         )
     ),
     when.apply.filter=c("postnorm","prenorm"),
-    normalization=c("edaseq","deseq","edger","noiseq","nbpseq","each","none"),
+    normalization=c("deseq","edaseq","edger","noiseq","nbpseq","each","none"),
     norm.args=NULL,
     statistics=c("deseq","edger","noiseq","bayseq","limma","nbpseq"),
     stat.args=NULL,
@@ -982,6 +983,7 @@ metaseqr <- function(
     annotation <- tolower(annotation[1])
     org <- tolower(org[1])
     refdb <- tolower(refdb[1])
+    trans.level <- tolower(trans.level[1])
     count.type <- tolower(count.type[1])
     when.apply.filter <- tolower(when.apply.filter[1])
     normalization <- tolower(normalization[1])
@@ -1035,10 +1037,13 @@ metaseqr <- function(
     check.text.args("annotation",annotation,c("embedded","download"),
         multiarg=FALSE)
     check.text.args("org",org,c("hg18","hg19","hg38","mm9","mm10","rn5","rn6",
-        "dm3","dm6","danrer7","pantro4","susscr3","tair10","custom"),
+        "dm3","dm6","danrer7","pantro4","susscr3","tair10","equcab2","custom"),
         multiarg=FALSE)
     check.text.args("refdb",refdb,c("ensembl","ucsc","refseq"),multiarg=FALSE)
-    check.text.args("count.type",count.type,c("gene","exon","utr"),multiarg=FALSE)
+    check.text.args("trans.level",trans.level,c("gene","transcript","exon"),
+		multiarg=FALSE)
+    check.text.args("count.type",count.type,c("gene","exon","utr"),
+		multiarg=FALSE)
     check.text.args("when.apply.filter",when.apply.filter,c("postnorm",
         "prenorm"),multiarg=FALSE)
     check.text.args("normalization",normalization,c("edaseq","deseq","edger",
@@ -1080,7 +1085,11 @@ metaseqr <- function(
     check.num.args("utr.flank",utr.flank,"numeric")
     if (!is.null(report.top))
         check.num.args("report.top",report.top,"numeric",c(0,1),"both")
-    if (!is.null(contrast)) check.contrast.format(contrast,sample.list)
+    if (!is.null(contrast)) 
+    {
+		check.contrast.format(contrast,sample.list)
+		contrast <- unique(contrast)
+	}
     if ("bayseq" %in% statistics) libsize.list <- check.libsize(libsize.list,
         sample.list)
 
@@ -1212,6 +1221,7 @@ metaseqr <- function(
 		disp("3' UTR flanking: ",utr.flank)
     if (!is.null(preset))
         disp("Analysis preset: ",preset)
+    disp("Transcriptional level: ",trans.level)
     if (!is.null(exon.filters))
     {
         disp("Exon filters: ",paste(names(exon.filters),collapse=", "))
@@ -1332,8 +1342,14 @@ metaseqr <- function(
 			}
 			else
 			{
-				disp("Downloading gene annotation for ",org,"...")
-				gene.data <- get.annotation(org,"gene",refdb)
+				if (trans.level=="gene") {
+					disp("Downloading gene annotation for ",org,"...")
+					gene.data <- get.annotation(org,"gene",refdb)
+				}
+				else if (trans.level=="transcript") {
+					disp("Downloading transcript annotation for ",org,"...")
+					gene.data <- get.annotation(org,"transcript",refdb)
+				}
 			}
         }
         
@@ -1539,8 +1555,14 @@ metaseqr <- function(
 			}
 			else
 			{
-				disp("Downloading gene annotation for ",org,"...")
-				gene.data <- get.annotation(org,"gene",refdb)
+				if (trans.level=="gene") {
+					disp("Downloading gene annotation for ",org,"...")
+					gene.data <- get.annotation(org,"gene",refdb)
+				}
+				else if (trans.level=="transcript") {
+					disp("Downloading transcript annotation for ",org,"...")
+					gene.data <- get.annotation(org,"transcript",refdb)
+				}
 			}
         }
         
@@ -1548,8 +1570,11 @@ metaseqr <- function(
         {
             if (annotation=="download")
             {
-                disp("Downloading transcript annotation for ",org,"...")
-                transcript.data <- get.annotation(org,count.type,refdb,multic)
+                if (trans.level %in% c("gene","transcript")) {
+					disp("Downloading transcript annotation for ",org,"...")
+					transcript.data <- get.annotation(org,count.type,refdb,
+						multic)
+				}
             }
             else if (annotation=="embedded")
             {
@@ -1564,9 +1589,11 @@ metaseqr <- function(
                 }
                 else
                     transcript.counts <- counts
-                rownames(transcript.counts) <- as.character(transcript.counts[,id.col])
+                rownames(transcript.counts) <- 
+					as.character(transcript.counts[,id.col])
                 all.cols <- 1:ncol(transcript.counts)
-                sam.cols <- match(unlist(sample.list),colnames(transcript.counts))
+                sam.cols <- match(unlist(sample.list),
+					colnames(transcript.counts))
                 sam.cols <- sam.cols[which(!is.na(sam.cols))]
                 ann.cols <- all.cols[-sam.cols]
                 transcript.data <- transcript.counts[,ann.cols]
@@ -1574,9 +1601,11 @@ metaseqr <- function(
                 colnames(transcript.data)[id.col] <- "transcript_id"
                 if (!is.na(name.col)) colnames(transcript.data)[name.col] <- 
                     "gene_name"
-                if (!is.na(bt.col)) colnames(transcript.data)[bt.col] <- "biotype"
-                transcript.counts <- cbind(transcript.data[rownames(transcript.counts),c("start",
-                    "end","transcript_id","gene_id")],transcript.counts)
+                if (!is.na(bt.col)) 
+					colnames(transcript.data)[bt.col] <- "biotype"
+                transcript.counts <- 
+					cbind(transcript.data[rownames(transcript.counts),c("start",
+						"end","transcript_id","gene_id")],transcript.counts)
             }
             else # Reading from external file, similar to embedded
             {
@@ -1606,7 +1635,8 @@ metaseqr <- function(
                 }
                 else # Already a data frame as input
                     transcript.counts <- counts
-                rownames(transcript.counts) <- as.character(transcript.counts[,id.col])
+                rownames(transcript.counts) <- 
+					as.character(transcript.counts[,id.col])
                 transcript.counts <- transcript.counts[,unlist(sample.list,
                     use.names=FALSE)]
             }
@@ -1615,7 +1645,7 @@ metaseqr <- function(
                 if (from.raw) # Double check
                 {
                     r2c <- read2count(the.list,transcript.data,file.type,
-                        utr.flank,multic=multic)
+                        trans.level,utr.flank,multic=multic)
                     transcript.counts <- r2c$counts
                     # Merged transcript data!
                     transcript.data <- r2c$mergedann
@@ -1636,23 +1666,31 @@ metaseqr <- function(
                     }
                 }
             }
-            transcript.counts <- cbind(transcript.data[rownames(transcript.counts),c("start",
-                "end","transcript_id","gene_id")],transcript.counts[,unlist(sample.list,
-                use.names=FALSE)])
+            transcript.counts <- 
+				cbind(transcript.data[rownames(transcript.counts),c("start",
+					"end","transcript_id","gene_id")],
+					transcript.counts[,unlist(sample.list,use.names=FALSE)])
 
             # Get the transcript counts per gene model
-            disp("Checking chromosomes in transcript counts and gene annotation...")
-            gene.data <- reduce.gene.data(transcript.data[rownames(transcript.counts),],
-                gene.data)
+            disp("Checking chromosomes in transcript counts and gene ",
+				"annotation...")
+            gene.data <- 
+				reduce.gene.data(transcript.data[rownames(transcript.counts),],
+					gene.data)
             disp("Processing transcripts...")
-            the.counts <- construct.utr.model(transcript.counts,sample.list,
-                gene.data,multic=multic)
+            if (trans.level=="gene")
+				the.counts <- construct.utr.model(transcript.counts,sample.list,
+					gene.data,multic=multic)
+			else if (trans.level=="transcript")
+				the.counts <- construct.utr.model(transcript.counts,sample.list,
+					transcript.data,multic=multic)
 
             if (save.gene.model)
             {
                 disp("Saving gene model to ",file.path(PROJECT.PATH[["data"]],
                     "gene_model.RData"))
-                save(the.counts,transcript.data,gene.data,sample.list,count.type,
+                save(the.counts,transcript.data,gene.data,sample.list,
+                    count.type,
                     file=file.path(PROJECT.PATH$data,"gene_model.RData"),
                     compress=TRUE)
             }
@@ -1662,9 +1700,11 @@ metaseqr <- function(
             the.counts <- counts
         else if (annotation=="embedded") {
 			# First time read, construct gene model
-			disp("Checking chromosomes in transcript counts and gene annotation...")
-            gene.data <- reduce.gene.data(transcript.data[rownames(transcript.counts),],
-                gene.data)
+			disp("Checking chromosomes in transcript counts and gene ",
+				"annotation...")
+            gene.data <- 
+				reduce.gene.data(transcript.data[rownames(transcript.counts),],
+					gene.data)
             disp("Processing transcripts...")
             the.counts <- construct.utr.model(transcript.counts,sample.list,
                 gene.data,multic=multic)
@@ -1673,8 +1713,9 @@ metaseqr <- function(
             {
                 disp("Saving gene model to ",file.path(PROJECT.PATH[["data"]],
                     "gene_model.RData"))
-                save(the.counts,transcript.data,gene.data,sample.list,count.type,
-                    file=file.path(PROJECT.PATH$data,"gene_model.RData"),
+                save(the.counts,transcript.data,gene.data,sample.list,
+                    count.type,
+					file=file.path(PROJECT.PATH$data,"gene_model.RData"),
                     compress=TRUE)
             }
 		}
@@ -1695,7 +1736,8 @@ metaseqr <- function(
         disp("Summarizing count data...")
         the.gene.counts <- the.transcript.lengths <- vector("list",
             length(unlist(sample.list)))
-        names(the.gene.counts) <- names(the.transcript.lengths) <- names(the.counts)
+        names(the.gene.counts) <- names(the.transcript.lengths) <- 
+			names(the.counts)
         for (n in names(the.gene.counts))
         {
             the.gene.counts[[n]] <- wapply(multic,the.counts[[n]],
@@ -1703,14 +1745,16 @@ metaseqr <- function(
             the.transcript.lengths[[n]] <- wapply(multic,the.counts[[n]],
                 function(x) return(sum(x$length)))
             the.gene.counts[[n]] <- do.call("c",the.gene.counts[[n]])
-            the.transcript.lengths[[n]] <- do.call("c",the.transcript.lengths[[n]])
+            the.transcript.lengths[[n]] <- 
+				do.call("c",the.transcript.lengths[[n]])
         }
         gene.counts <- do.call("cbind",the.gene.counts)
-        gene.length <- the.transcript.lengths[[1]] # Based on the sum of their transcript lengths
+        gene.length <- the.transcript.lengths[[1]]
+        # Based on the sum of their transcript lengths
         names(gene.length) <- rownames(gene.data)
         
-        # In case there are small differences between annotation data and external 
-        # file, due to e.g. slightly different Ensembl versions
+        # In case there are small differences between annotation data and 
+        # external file, due to e.g. slightly different Ensembl versions
         gene.data <- gene.data[rownames(gene.counts),]
         total.gene.data <- gene.data # We need this for some total stats
         
@@ -1722,8 +1766,20 @@ metaseqr <- function(
         {
             if (annotation=="download")
             {
-                disp("Downloading gene annotation for ",org,"...")
-                gene.data <- get.annotation(org,count.type,refdb)
+                if (trans.level=="gene") {
+					disp("Downloading gene annotation for ",org,"...")
+					gene.data <- get.annotation(org,count.type,refdb)
+				}
+				else if (trans.level=="transcript") {
+					disp("Downloading transcript annotation for ",org,"...")
+					gene.data <- get.annotation(org,"transcript",refdb)
+					gene.data$gc_content = rep(0.5,nrow(gene.data))
+				}
+				else if (trans.level=="exon") {
+					disp("Downloading exon annotation for ",org,"...")
+					gene.data <- get.annotation(org,"exon",refdb)
+					gene.data$gc_content = rep(0.5,nrow(gene.data))
+				}
             }
             else if (annotation=="embedded")
             {
@@ -1743,7 +1799,12 @@ metaseqr <- function(
                 ann.cols <- all.cols[-sam.cols]
                 gene.data <- gene.counts[,ann.cols]
                 gene.counts <- gene.counts[,sam.cols]
-                colnames(gene.data)[id.col] <- "gene_id"
+                if (trans.level=="gene")
+					colnames(gene.data)[id.col] <- "gene_id"
+				else if (trans.level=="transcript")
+					colnames(gene.data)[id.col] <- "transcript_id"
+				else if (trans.level=="exon")
+					colnames(gene.data)[id.col] <- "exon_id"
                 if (!is.na(gc.col))
                 {
                     colnames(gene.data)[gc.col] <- "gc_content"
@@ -1764,10 +1825,15 @@ metaseqr <- function(
                 else
                     gene.counts <- counts
                 rownames(gene.counts) <- as.character(gene.counts[,id.col])
-                disp("Reading external gene annotation for ",org," from ",
-                    annotation,"...")
+                disp("Reading external ",trans.level," annotation for ",org,
+					" from ",annotation,"...")
                 gene.data <- read.delim(annotation)
-                rownames(gene.data) <- as.character(gene.data$gene_id)
+                if (trans.level=="gene")
+					rownames(gene.data) <- as.character(gene.data$gene_id)
+				else if (trans.level=="transcript")
+					rownames(gene.data) <- as.character(gene.data$transcript_id)
+				else if (trans.level=="exon")
+					rownames(gene.data) <- as.character(gene.data$exon_id)
                 gene.data <- gene.data[rownames(gene.counts),]
                 if (max(gene.data$gc_content)<=1) # Is already divided
                     gene.data$gc_content = 100*gene.data$gc_content
@@ -1782,7 +1848,8 @@ metaseqr <- function(
         total.gene.data <- gene.data # We need this for some total stats
         exon.filter.result <- NULL
 
-        if (annotation!="embedded" & !from.previous) # Else everything is provided and done
+		# Else everything is provided and done
+        if (annotation!="embedded" & !from.previous)
         {
             if (!is.null(counts)) # Otherwise it's coming ready from read2count
             {
@@ -1850,7 +1917,8 @@ metaseqr <- function(
     }
 
     # Transform GC-content and biotype
-    gene.data$gc_content <- as.numeric(gene.data$gc_content)/100
+    if (is.null(gene.data$gc_content))
+		gene.data$gc_content <- rep(0.5,nrow(gene.data))
     if (is.null(gene.data$biotype))
         gene.data$biotype <- rep(NA,nrow(gene.data))
     names(gene.length) <- rownames(gene.counts)
@@ -3055,24 +3123,38 @@ construct.gene.model <- function(exon.counts,sample.list,
 #' gene.model <- construct.gene.model(hg19.exon.counts,sample.list.hg19,gene.data,
 #'   multic)
 #'}
-construct.utr.model <- function(utr.counts,sample.list,
-    gene.data,multic=FALSE) {
+construct.utr.model <- function(utr.counts,sample.list,gene.data,
+	multic=FALSE) {
     the.counts <- vector("list",length(unlist(sample.list)))
     names(the.counts) <- unlist(sample.list,use.names=FALSE)
-    the.genes <- as.character(unique(gene.data$gene_id))
+    #if (trans.level=="gene")
+		the.genes <- as.character(unique(gene.data$gene_id))
+	#else if (trans.level=="transcript")
+	#	the.genes <- as.character(unique(gene.data$transcript_id))
     for (n in names(the.counts))
     {
-        disp("  Separating transcripts (UTR regions) per gene for ",n,"...")
-        #the.counts[[n]] <- vector("list",length(the.genes))
+        disp("  Separating transcripts (UTR regions) per for ",n,"...")
         the.counts[[n]] <- the.genes
         names(the.counts[[n]]) <- the.genes
-        the.counts[[n]] <- wapply(multic,the.counts[[n]],function(x,d,n) {
-            tmp <- d[which(d$gene_id==x),c("start","end","transcript_id",n)]
-            xx <- tmp[,n]
-            yy <- tmp$end - tmp$start
-            names(xx) <- names(yy) <- tmp$exon_id
-            return(list(count=xx,length=yy))
-        },utr.counts,n)
+        #if (trans.level=="gene") {
+			the.counts[[n]] <- wapply(multic,the.counts[[n]],function(x,d,n) {
+				tmp <- d[which(d$gene_id==x),c("start","end","transcript_id",n)]
+				xx <- tmp[,n]
+				yy <- tmp$end - tmp$start
+				names(xx) <- names(yy) <- tmp$transcript_id
+				return(list(count=xx,length=yy))
+			},utr.counts,n)
+		#}
+		#else if (trans.level=="transcript") {
+		#	the.counts[[n]] <- wapply(multic,the.counts[[n]],function(x,d,n) {
+		#		tmp <- d[which(d$transcript_id==x),
+		#			c("start","end","transcript_id",n)]
+		#		xx <- tmp[,n]
+		#		yy <- tmp$end - tmp$start
+		#		names(xx) <- names(yy) <- tmp$transcript_id
+		#		return(list(count=xx,length=yy))
+		#	},utr.counts,n)
+		#}
     }
     return(the.counts)
 }

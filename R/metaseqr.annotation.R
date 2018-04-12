@@ -34,9 +34,9 @@
 #'}
 get.annotation <- function(org,type,refdb="ensembl",multic=FALSE) {
     org <- tolower(org)
-    if (type=="utr" && refdb %in% c("ucsc","refseq")) {
-        disp("Quant-Seq (utr) analysis is not yet supported with UCSC or ",
-            "RefSeq annotation. Switching to Ensembl...")
+    if (type %in% c("utr","transcript") && refdb %in% c("ucsc","refseq")) {
+        disp("Quant-Seq (utr) and transcript analysis is not yet supported ",
+            "with UCSC or RefSeq annotation. Switching to Ensembl...")
         refdb <- "ensembl"
     }
     switch(refdb,
@@ -159,6 +159,21 @@ get.ensembl.annotation <- function(org,type) {
         ann <- ann[,c("chromosome","start","end","transcript_id","gene_id",
             "strand","gene_name","biotype")]
     }
+    else if (type=="transcript") {
+        bm <- getBM(attributes=get.transcript.attributes(org),mart=mart)
+        ann <- data.frame(
+            chromosome=paste("chr",bm$chromosome_name,sep=""),
+            start=bm$transcript_start,
+            end=bm$transcript_end,
+            transcript_id=bm$ensembl_transcript_id,
+            gene_id=bm$ensembl_gene_id,
+            strand=ifelse(bm$strand==1,"+","-"),
+            gene_name=if (org %in% c("hg18","mm9","tair10")) 
+                bm$external_gene_id else bm$external_gene_name,
+            biotype=bm$gene_biotype
+        )
+        rownames(ann) <- as.character(ann$transcript_id)
+    }
     ann <- ann[order(ann$chromosome,ann$start),]
     ann <- ann[grep(chrs.exp,ann$chromosome),]
     ann$chromosome <- as.character(ann$chromosome)
@@ -220,6 +235,11 @@ get.ucsc.annotation <- function(org,type,refdb="ucsc",multic=FALSE) {
         warnwrap("Arabidopsis thaliana genome is not supported by UCSC Genome ",
             "Browser database! Switching to Ensembl...")
         return(get.ensembl.annotation("tair10",type))
+    }
+    if (org=="equcab2") {
+        warnwrap("Equus cabalus genome is not supported by UCSC Genome ",
+            "Browser database! Switching to Ensembl...")
+        return(get.ensembl.annotation("equcab2",type))
     }
 
     valid.chrs <- get.valid.chrs(org)
@@ -374,7 +394,8 @@ get.ucsc.organism <- function(org) {
         danrer7 = { return("danRer7") },
         pantro4 = { return("panTro4") },
         susscr3 = { return("susScr3") },
-        tair10 = { return("TAIR10") }
+        tair10 = { return("TAIR10") },
+        equcab2 = { return("equCab2") }
     )
 }
 
@@ -511,6 +532,7 @@ get.host <- function(org) {
         pantro4 = { return("www.ensembl.org") },
         susscr3 = { return("www.ensembl.org") },
         tair10 = { return("plants.ensembl.org") },
+        equcab2 = { return("www.ensembl.org") },
         bmori2 = { return("metazoa.ensembl.org") }
     )
 }
@@ -541,6 +563,7 @@ get.alt.host <- function(org) {
         pantro4 = { return("uswest.ensembl.org") },
         susscr3 = { return("uswest.ensembl.org") },
         tair10 = { return("plants.ensembl.org") },
+        equcab2 = { return("uswest.ensembl.org") },
         bmori2 = { return("metazoa.ensembl.org") }
     )
 }
@@ -573,6 +596,7 @@ get.dataset <- function(org) {
         pantro4 = { return("ptroglodytes_gene_ensembl") },
         susscr3 = { return("sscrofa_gene_ensembl") },
         tair10 = { return("athaliana_eg_gene") },
+        equcab2 = { return("ecaballus_gene_ensembl") },
         bmori2 = { return("bmori_eg_gene") },
     )
 }
@@ -680,6 +704,14 @@ get.valid.chrs <- function(org)
         tair10 = {
             return(c(
                 "chr1","chr2","chr3","chr4","chr5"
+            ))
+        },
+        equcab2 = {
+            return(c(
+                "chr1","chr10","chr11","chr12","chr13","chr14","chr15","chr16",
+                "chr17","chr18","chr19","chr2","chr20","chr21","chr22","chr23",
+                "chr24","chr25","chr26","chr27","chr28","chr29","chr3","chr30",
+                "chr31","chr4","chr5","chr6","chr7","chr8","chr9","chrX","chrY"
             ))
         },
         bmori2 = {
@@ -816,6 +848,31 @@ get.transcript.utr.attributes <- function(org) {
             "transcript_end",
             "3_utr_start",
             "3_utr_end",
+            "ensembl_transcript_id",
+            "strand",
+            "ensembl_gene_id",
+            "external_gene_name",
+            "gene_biotype"
+        ))
+}
+
+get.transcript.attributes <- function(org) {
+    if (org %in% c("hg18","mm9","tair10","bmori2"))
+        return(c(
+            "chromosome_name",
+            "transcript_start",
+            "transcript_end",
+            "ensembl_transcript_id",
+            "strand",
+            "ensembl_gene_id",
+            "external_gene_id",
+            "gene_biotype"
+        ))
+    else
+        return(c(
+            "chromosome_name",
+            "transcript_start",
+            "transcript_end",
             "ensembl_transcript_id",
             "strand",
             "ensembl_gene_id",

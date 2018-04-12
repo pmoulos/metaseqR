@@ -395,3 +395,16 @@ BUG FIXES
     o Fixed bug in problematic backwards compatibility of strandedness in
     targets files which caused strandedness to be ignored (thans to Martin 
     Reczko, BSRC 'Alexander Fleming').
+
+CHANGES IN VERSION 1.19.14 (2018-04-12)
+--------------------------------------
+
+NEW FEATURES
+
+    o New option for count.type: when "transcript", the DE analysis is
+    performed at the transcript level. Only works for Ensembl annotation.
+
+BUG FIXES
+
+    o Fixed a leftover which prevented completing the analysis when count.type
+    is "exon".

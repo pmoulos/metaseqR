@@ -10,8 +10,9 @@
         annotation = c("download", "embedded"), gene.file = NULL,
         org = c("hg18", "hg19", "hg38", "mm9", "mm10", "rn5", "rn6",
             "dm3", "dm6", "danrer7", "pantro4", "susscr3", "tair10", 
-            "custom"),
+            "equcab2","custom"),
         refdb = c("ensembl", "ucsc", "refseq"),
+        trans.level = c("gene", "transcript", "exon"),
         count.type = c("gene", "exon","utr"),
         utr.flank = 500,
         exon.filters = list(min.active.exons = list(exons.per.gene = 5, 
@@ -24,7 +25,7 @@
                 presence = list(frac = 0.25, min.count = 10,
 					per.condition = FALSE)),
         when.apply.filter = c("postnorm", "prenorm"),
-        normalization = c("edaseq", "deseq", "edger", "noiseq", "nbpseq", 
+        normalization = c("deseq", "edaseq", "edger", "noiseq", "nbpseq", 
                 "each", "none"),
         norm.args = NULL,
         statistics = c("deseq", "edger", "noiseq", "bayseq", "limma", 
@@ -226,17 +227,23 @@
     for rat genomes \code{"rn5"} or \code{"rn6"}, for drosophila 
     genome \code{"dm3"} or \code{"dm6"}, for zebrafish genome 
     \code{"danrer7"}, for chimpanzee genome \code{"pantro4"}, 
-    for pig genome \code{"susscr3"} and for Arabidopsis 
-    thaliana genome \code{"tair10"}. Finally, \code{"custom"} 
-    will instruct metaseqR to completely ignore the \code{org} 
-    argument and depend solely on annotation file provided by 
-    the user.}
+    for pig genome \code{"susscr3"}, for Arabidopsis 
+    thaliana genome \code{"tair10"} and for Equus caballus genome
+    \code{"equcab2"}. Finally, \code{"custom"} will instruct
+    metaseqR to completely ignore the \code{org} argument and
+    depend solely on annotation file provided by the user.}
 
     \item{refdb}{the reference annotation repository from
     which to retrieve annotation elements to use with
     metaseqr. It can be one of \code{"ensembl"} (default),
     \code{"ucsc"} or \code{"refseq"}.}
-
+	
+	\item{trans.level}{perform differential expression 
+	analysis at which transcriptional unit, can be one of
+	\code{"gene"} (default), \code{"transcript"} for 
+	reporting differential expression at the transcript
+	level or \code{"exon"} for exon level.}
+	
     \item{count.type}{the type of reads inside the counts
     file. It can be one of \code{"gene"}, \code{"exon"} or
     \code{"utr"} for quant seq (lexogen) protocol. This is
@@ -270,10 +277,10 @@
 
     \item{normalization}{the normalization algorithm to be
     applied on the count data. It can be one of
-    \code{"edaseq"} (default) for EDASeq normalization,
-    \code{"deseq"} for the normalization algorithm
-    (individual options specified by the \code{norm.args}
-    argument) in the DESq package, \code{"edger"} for the
+    \code{"edaseq"} for EDASeq normalization, \code{"deseq"}
+    for the normalization algorithm (individual options 
+    specified by the \code{norm.args} argument) in the DESq 
+    package (default), \code{"edger"} for the
     normalization algorithms present in the edgeR package
     (specified by the \code{norm.args} argument),
     \code{"noiseq"} for the normalization algorithms present
