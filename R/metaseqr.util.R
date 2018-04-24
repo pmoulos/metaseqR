@@ -771,7 +771,7 @@ validate.list.args <- function(what,method=NULL,arg.list) {
                         "grid.length","grid.range","offset","glm.method",
                         "subset","AveLogCPM","trend.method","dispersion",
                         "offset","weights","lib.size","prior.count","start",
-                        "method","test","abundance.trend","robust",
+                        "method","abundance.trend","robust",
                         "winsor.tail.p")
                     not.valid <- which(!valid)
                 },

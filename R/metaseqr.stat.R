@@ -241,7 +241,7 @@ stat.edger <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
                         start=stat.args$start,method=stat.args$method)
                     co <- makeContrasts(paste(us[2],us[1],sep="-"),
                         levels=design)
-                    lrt <- glmLRT(fit,contrast=co,test=stat.args$test)
+                    lrt <- glmLRT(fit,contrast=co)
                     res <- topTags(lrt,n=nrow(dge))
                 }
             }
@@ -269,7 +269,7 @@ stat.edger <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
                         method=stat.args$method)
                     co <- makeContrasts(paste(us[2],us[1],sep="-"),
                         levels=design)
-                    lrt <- glmLRT(fit,contrast=co,test=stat.args$test)
+                    lrt <- glmLRT(fit,contrast=co)
                     res <- topTags(lrt,n=nrow(dge))
                 }
             }
@@ -297,7 +297,7 @@ stat.edger <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
                 #    dispersion=bcv^2)
                 fit <- glmFit(dge[,ms],design=design,dispersion=bcv^2,
                     prior.count=stat.args$prior.count,start=stat.args$start)
-                #lrt <- glmLRT(fit,coef=2:ncol(fit$design),test=stat.args$test)
+                #lrt <- glmLRT(fit,coef=2:ncol(fit$design))
                 lrt <- glmLRT(fit,coef=2:ncol(fit$design))
                 res <- topTags(lrt,n=nrow(dge))
         }
