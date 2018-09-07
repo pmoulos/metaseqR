@@ -471,8 +471,8 @@ get.bs.organism <- function(org) {
 #' bs.obj <- load.bs.genome("mm9")
 #'}
 load.bs.genome <- function(org) {
-    if (!require(BiocInstaller))
-        stopwrap("The Bioconductor package BiocInstaller is required to ",
+    if (!require(BiocManager))
+        stopwrap("The Bioconductor package BiocManager is required to ",
             "proceed!")
     if (!require(BSgenome))
         stopwrap("The Bioconductor package BSgenome is required to ",
