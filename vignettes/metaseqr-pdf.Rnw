@@ -118,6 +118,8 @@ command window:
 <<example-1, eval=TRUE, echo=TRUE, tidy=FALSE, message=TRUE, warning=FALSE>>=
 library(metaseqR)
 data("mm9.gene.data",package="metaseqR")
+out.dir <- tempdir()
+print(out.dir)
 result <- metaseqr(
        counts=mm9.gene.counts,
        sample.list=sample.list.mm9,
@@ -135,7 +137,7 @@ result <- metaseqr(
        export.scale=c("natural","log2"),
        export.values="normalized",
        export.stats=c("mean","sd","cv"),
-       export.where="~/metaseqr_test",
+       export.where=out.dir,
        restrict.cores=0.8,
        gene.filters=list(
              length=list(
@@ -165,7 +167,7 @@ head(result[["data"]][["e14.5_vs_adult_8_weeks"]])
 @
 
 Check the HTML report generated in the output directory defined by the
-export.where argument above.
+export.where argument above (out.dir variable).
 
 Now, the same example but with more than one statistical selection algorithms, a
 different normalization, an analysis preset and filtering applied prior to
@@ -174,6 +176,8 @@ normalization:
 <<example-2, eval=TRUE, echo=TRUE, tidy=FALSE, message=TRUE, warning=FALSE>>=
 library(metaseqR)
 data("mm9.gene.data",package="metaseqR")
+out.dir2 <- tempdir()
+print(out.dir2)
 result <- metaseqr(
        counts=mm9.gene.counts,
        sample.list=sample.list.mm9,
@@ -193,7 +197,7 @@ result <- metaseqr(
        ),
        fig.format=c("png","pdf"),
        preset="medium.normal",
-       export.where="~/metaseqr_test2",
+       export.where=out.dir2,
        out.list=TRUE
 )
 @
@@ -204,6 +208,8 @@ evaluated here):
 <<example-3, eval=FALSE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE>>=
 library(metaseqR)
 data("mm9.gene.data",package="metaseqR")
+out.dir <- tempdir()
+print(out.dir)
 result <- metaseqr(
        counts=mm9.gene.counts,
        sample.list=sample.list.mm9,
@@ -217,7 +223,8 @@ result <- metaseqr(
        meta.p="fisher",
        fig.format=c("png","pdf"),
        preset="medium.normal",
-       out.list=TRUE
+       out.list=TRUE,
+       export.where=out.dir
 )
 @
 
@@ -230,6 +237,8 @@ of RAM available, consider setting restrict.cores to something like 0.2):
 <<example-4, eval=FALSE, echo=TRUE, tidy=FALSE>>=
 # A full example pipeline with exon counts
 data("hg19.exon.data",package="metaseqR")
+out.dir <- tempdir()
+print(out.dir)
 metaseqr(
        counts=hg19.exon.counts,
        sample.list=sample.list.hg19,
@@ -267,7 +276,8 @@ metaseqr(
                     mean=FALSE
              ),
              biotype=get.defaults("biotype.filter","hg19")
-       )
+       ),
+       export.where=out.dir
 )
 @
 
@@ -276,6 +286,8 @@ or in a more simplified version
 <<example-5, eval=FALSE, echo=TRUE, tidy=FALSE>>=
 # A full example pipeline with exon counts
 data("hg19.exon.data",package="metaseqR")
+out.dir <- tempdir()
+print(out.dir)
 metaseqr(
        counts=hg19.exon.counts,
        sample.list=sample.list.hg19,
@@ -289,7 +301,8 @@ metaseqr(
        normalization="edaseq",
        statistics="deseq",
        preset="medium.normal",
-       restrict.cores=0.8
+       restrict.cores=0.8,
+       export.where=out.dir
 )
 @
 
