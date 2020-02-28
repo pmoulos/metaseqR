@@ -33,7 +33,7 @@
 stat.deseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
     #if (is.null(norm.args) && class(object)=="DGEList")
     #    norm.args <- get.defaults("normalization","edger")
-    if (is.null(stat.args) && class(object)!="CountDataSet")
+    if (is.null(stat.args) && !is(object,"CountDataSet"))
         stat.args <- get.defaults("statistics","deseq")
     if (is.null(contrast.list))
         contrast.list <- make.contrast.list(paste(names(sample.list)[1:2],
@@ -58,7 +58,7 @@ stat.deseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
         sharingMode.disp <- stat.args$sharingMode
         fitType.disp <- stat.args$fitType
     }
-    switch(class(object),
+    switch(class(object)[1],
         CountDataSet = { # Has been normalized with DESeq
             cds <- object
             cds <- estimateDispersions(cds,method=method.disp,
@@ -159,7 +159,7 @@ stat.edger <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
     classes <- as.class.vector(sample.list)
     p <- vector("list",length(contrast.list))
     names(p) <- names(contrast.list)
-    switch(class(object),
+    switch(class(object)[1],
         CountDataSet = { # Has been normalized with DESeq
             dge <- DGEList(counts=counts(object,normalized=TRUE),group=classes)
         },
@@ -350,7 +350,7 @@ stat.limma <- function(object,sample.list,contrast.list=NULL,stat.args=NULL) {
     classes <- as.class.vector(sample.list)
     p <- vector("list",length(contrast.list))
     names(p) <- names(contrast.list)
-    switch(class(object),
+    switch(class(object)[1],
         CountDataSet = { # Has been normalized with DESeq
             dge <- DGEList(counts=counts(object,normalized=TRUE),group=classes)
         },
@@ -481,7 +481,7 @@ stat.noiseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
     classes <- as.class.vector(sample.list)
     p <- vector("list",length(contrast.list))
     names(p) <- names(contrast.list)
-    switch(class(object),
+    switch(class(object)[1],
         CountDataSet = { # Has been normalized with DESeq
             ns.obj <- NOISeq::readData(
                 data=counts(object,normalized=TRUE),
@@ -633,7 +633,7 @@ stat.bayseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
     classes <- as.class.vector(sample.list)
     p <- vector("list",length(contrast.list))
     names(p) <- names(contrast.list)
-    switch(class(object),
+    switch(class(object)[1],
         CountDataSet = { # Has been normalized with DESeq
             bayes.data <- counts(object,normalized=TRUE)
         },
@@ -732,7 +732,7 @@ stat.bayseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
 #'}
 stat.nbpseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
     libsize.list=NULL) {
-    if (is.null(stat.args) && class(object)!="list")
+    if (is.null(stat.args) && !is(object,"list"))
         stat.args <- get.defaults("statistics","nbpseq")
     if (is.null(contrast.list))
         contrast.list <- make.contrast.list(paste(names(sample.list)[1:2],
@@ -742,7 +742,7 @@ stat.nbpseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
     classes <- as.class.vector(sample.list)
     p <- vector("list",length(contrast.list))
     names(p) <- names(contrast.list)
-    switch(class(object),
+    switch(class(object)[1],
         CountDataSet = { # Has been normalized with DESeq
             counts <- round(counts(object,normalized=TRUE))
             if (is.null(libsize.list)) {
@@ -800,7 +800,7 @@ stat.nbpseq <- function(object,sample.list,contrast.list=NULL,stat.args=NULL,
         }
     )
     # To avoid repeating the following chunk in the above
-    if (class(object)!="list" && class(object)!="nbp") {
+    if (!is(object,"list") && !is(object,"nbp")) {
         #if (stat.args$main.method=="nbpseq") {
         #    nb.data <- list(
         #        counts=as.matrix(counts),

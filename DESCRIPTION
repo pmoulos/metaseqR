@@ -6,7 +6,6 @@ Title: An R package for the analysis and result reporting
 Author: Panagiotis Moulos <moulos@fleming.gr>
 Maintainer: Panagiotis Moulos <moulos@fleming.gr>
 Depends:
-    R (>= 2.13.0),
     EDASeq,
     DESeq,
     limma,
@@ -56,8 +55,8 @@ biocViews: ImmunoOncology, Software, GeneExpression, DifferentialExpression, Wor
 VignetteBuilder: knitr
 Authors@R: c(person(given="Panagiotis", family="Moulos",
     email="moulos@fleming.gr", role=c("aut", "cre")))
-Version: 1.23.2
-Date: 2019-04-10
+Version: 1.27.1
+Date: 2020-28-02
 Collate:
     'metaseqr.annotation.R'
     'metaseqr.argcheck.R'
