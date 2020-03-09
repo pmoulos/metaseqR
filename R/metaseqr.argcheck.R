@@ -331,7 +331,7 @@ check.libsize <- function(libsize.list,sample.list) {
 #}
 check.packages <- function(m,p) {
     # Check meta-analysis packages
-    if (m=="whitlock" && !require(survcomp))
+    if ("whitlock" %in% m && !require(survcomp))
         stopwrap("Bioconductor package survcomp is required for \"whitlock\" ",
             "p-value meta analysis!")
     if ("venn" %in% p && !require(VennDiagram))
