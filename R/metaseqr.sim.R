@@ -80,75 +80,150 @@ estimate.aufc.weights <- function(counts,normalization,statistics,nsim=10,
 
     disp("Running simulations... This procedure requires time... Please ",
         "wait...")
-    sim.results <- wapply(multic,seed,function(x,normalization,statistics,N,
-        par.list,samples,ndeg,fc.basis,model.org) {
-        D <- make.sim.data.sd(N=N,param=par.list,samples=samples,ndeg=ndeg,
-            fc.basis=fc.basis,model.org=model.org,seed=x)
-        dd <- D$simdata
-        
-        if (!is.null(model.org)) {
-            tmp <- metaseqr(
-                counts=dd,
-                sample.list=list(G1=paste("G1_rep",1:samples[1],sep=""),
-                    G2=paste("G2_rep",1:samples[2],sep="")),
-                contrast=c("G1_vs_G2"),
-                annotation="embedded",
-                id.col=4,
-                gc.col=5,
-                name.col=7,
-                bt.col=8,
-                org=model.org,
-                count.type="gene",
-                normalization=normalization,
-                statistics=statistics,
-                meta.p="simes",
-                fig.format="png",
-                preset="all.basic",
-                export.where=tempdir(),
-                qc.plots=NULL,
-                report=FALSE,
-                run.log=FALSE,
-                out.list=TRUE
-            )
-        }
-        else {
-            tmp <- metaseqr(
-                counts=dd,
-                sample.list=list(G1=paste("G1_rep",1:samples[1],sep=""),
-                    G2=paste("G2_rep",1:samples[2],sep="")),
-                contrast=c("G1_vs_G2"),
-                annotation="embedded",
-                id.col=4,
-                gc.col=5,
-                name.col=7,
-                bt.col=8,
-                count.type="gene",
-                normalization=normalization,
-                statistics=statistics,
-                meta.p="simes",
-                fig.format="png",
-                preset="all.basic",
-                export.where=tempdir(),
-                qc.plots=NULL,
-                report=FALSE,
-                run.log=FALSE,
-                out.list=TRUE
-            )
-        }
+    if (nsim==1) {
+        sim.results <- lapply(seed[1],function(x,normalization,statistics,N,
+            par.list,samples,ndeg,fc.basis,model.org) {
+            D <- make.sim.data.sd(N=N,param=par.list,samples=samples,ndeg=ndeg,
+                fc.basis=fc.basis,model.org=model.org,seed=x)
+            dd <- D$simdata
+            
+            if (!is.null(model.org)) {
+                tmp <- metaseqr(
+                    counts=dd,
+                    sample.list=list(G1=paste("G1_rep",1:samples[1],sep=""),
+                        G2=paste("G2_rep",1:samples[2],sep="")),
+                    contrast=c("G1_vs_G2"),
+                    annotation="embedded",
+                    id.col=4,
+                    gc.col=5,
+                    name.col=7,
+                    bt.col=8,
+                    org=model.org,
+                    count.type="gene",
+                    normalization=normalization,
+                    statistics=statistics,
+                    meta.p="simes",
+                    fig.format="png",
+                    preset="all.basic",
+                    export.where=tempdir(),
+                    qc.plots=NULL,
+                    report=FALSE,
+                    run.log=FALSE,
+                    out.list=TRUE,
+                    restrict.cores=0.1
+                )
+            }
+            else {
+                tmp <- metaseqr(
+                    counts=dd,
+                    sample.list=list(G1=paste("G1_rep",1:samples[1],sep=""),
+                        G2=paste("G2_rep",1:samples[2],sep="")),
+                    contrast=c("G1_vs_G2"),
+                    annotation="embedded",
+                    id.col=4,
+                    gc.col=5,
+                    name.col=7,
+                    bt.col=8,
+                    count.type="gene",
+                    normalization=normalization,
+                    statistics=statistics,
+                    meta.p="simes",
+                    fig.format="png",
+                    preset="all.basic",
+                    export.where=tempdir(),
+                    qc.plots=NULL,
+                    report=FALSE,
+                    run.log=FALSE,
+                    out.list=TRUE,
+                    restrict.cores=0.1
+                )
+            }
 
-        # Retrieve several p-values
-        p.list <- vector("list",length(statistics))
-        for (s in statistics) {
-            field <- paste("p-value",s,sep="_")
-            p.list[[s]] <- tmp$data[[1]][,field]
-            names(p.list[[s]]) <- rownames(tmp$data[[1]])
-        }
-        p.matrix <- do.call("cbind",p.list)
-        return(list(simdata=D,pvalues=p.matrix))
-    },normalization,statistics,N,par.list,samples,ndeg,fc.basis,model.org)
+            # Retrieve several p-values
+            p.list <- vector("list",length(statistics))
+            for (s in statistics) {
+                field <- paste("p-value",s,sep="_")
+                p.list[[s]] <- tmp$data[[1]][,field]
+                names(p.list[[s]]) <- rownames(tmp$data[[1]])
+            }
+            p.matrix <- do.call("cbind",p.list)
+            return(list(simdata=D,pvalues=p.matrix))
+        },normalization,statistics,N,par.list,samples,ndeg,fc.basis,model.org)
+    }
+    else {
+        sim.results <- wapply(multic,seed,function(x,normalization,statistics,N,
+            par.list,samples,ndeg,fc.basis,model.org) {
+            D <- make.sim.data.sd(N=N,param=par.list,samples=samples,ndeg=ndeg,
+                fc.basis=fc.basis,model.org=model.org,seed=x)
+            dd <- D$simdata
+            
+            if (!is.null(model.org)) {
+                tmp <- metaseqr(
+                    counts=dd,
+                    sample.list=list(G1=paste("G1_rep",1:samples[1],sep=""),
+                        G2=paste("G2_rep",1:samples[2],sep="")),
+                    contrast=c("G1_vs_G2"),
+                    annotation="embedded",
+                    id.col=4,
+                    gc.col=5,
+                    name.col=7,
+                    bt.col=8,
+                    org=model.org,
+                    count.type="gene",
+                    normalization=normalization,
+                    statistics=statistics,
+                    meta.p="simes",
+                    fig.format="png",
+                    preset="all.basic",
+                    export.where=tempdir(),
+                    qc.plots=NULL,
+                    report=FALSE,
+                    run.log=FALSE,
+                    out.list=TRUE,
+                    restrict.cores=0.1
+                )
+            }
+            else {
+                tmp <- metaseqr(
+                    counts=dd,
+                    sample.list=list(G1=paste("G1_rep",1:samples[1],sep=""),
+                        G2=paste("G2_rep",1:samples[2],sep="")),
+                    contrast=c("G1_vs_G2"),
+                    annotation="embedded",
+                    id.col=4,
+                    gc.col=5,
+                    name.col=7,
+                    bt.col=8,
+                    count.type="gene",
+                    normalization=normalization,
+                    statistics=statistics,
+                    meta.p="simes",
+                    fig.format="png",
+                    preset="all.basic",
+                    export.where=tempdir(),
+                    qc.plots=NULL,
+                    report=FALSE,
+                    run.log=FALSE,
+                    out.list=TRUE,
+                    restrict.cores=0.1
+                )
+            }
+
+            # Retrieve several p-values
+            p.list <- vector("list",length(statistics))
+            for (s in statistics) {
+                field <- paste("p-value",s,sep="_")
+                p.list[[s]] <- tmp$data[[1]][,field]
+                names(p.list[[s]]) <- rownames(tmp$data[[1]])
+            }
+            p.matrix <- do.call("cbind",p.list)
+            return(list(simdata=D,pvalues=p.matrix))
+        },normalization,statistics,N,par.list,samples,ndeg,fc.basis,model.org)
+    }
 
     disp("Estimating AUFC weights... Please wait...")
-    fpc.obj <- wapply(multic,sim.results,function(x) {
+    #fpc.obj <- wapply(multic,sim.results,function(x) {
+    fpc.obj <- lapply(sim.results,function(x) {
         true.de <- x$simdata$truedeg
         names(true.de) <- rownames(x$simdata$simdata)
         p.matrix <- x$pvalues
@@ -433,7 +508,7 @@ make.sim.data.sd <- function(N,param,samples=c(5,5),ndeg=rep(round(0.1*N),2),
 #' par.list <- estimate.sim.params("~/bottomly_count_table.txt")
 #'}
 estimate.sim.params <- function(real.counts,libsize.gt=3e+6,rowmeans.gt=5,
-    eps=1e-11,restrict.cores=0.8,seed=42,draw=FALSE) {
+    eps=1e-11,restrict.cores=0.1,seed=42,draw=FALSE) {
     multic <- check.parallel(restrict.cores)
     if (is.data.frame(real.counts))
         mat <- as.matrix(real.counts)

@@ -56,8 +56,8 @@ biocViews: ImmunoOncology, Software, GeneExpression, DifferentialExpression, Wor
 VignetteBuilder: knitr
 Authors@R: c(person(given="Panagiotis", family="Moulos",
     email="moulos@fleming.gr", role=c("aut", "cre")))
-Version: 1.27.11
-Date: 2020-09-03
+Version: 1.27.12
+Date: 2020-04-02
 Collate:
     'metaseqr.annotation.R'
     'metaseqr.argcheck.R'

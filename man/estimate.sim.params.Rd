@@ -5,7 +5,7 @@
 \usage{
     estimate.sim.params(real.counts, libsize.gt = 3e+6,
         rowmeans.gt = 5,eps = 1e-11, 
-        restrict.cores = 0.8, seed = 42, draw = FALSE)
+        restrict.cores = 0.1, seed = 42, draw = FALSE)
 }
 \arguments{
     \item{real.counts}{a text tab-delimited file 

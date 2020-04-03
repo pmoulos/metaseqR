@@ -130,6 +130,10 @@ result <- metaseqr(
        count.type="gene",
        normalization="edger",
        statistics="edger",
+       qc.plots=c(
+           "mds","filtered","correl","pairwise","boxplot","gcbias",
+           "lengthbias","meandiff","meanvar","deheatmap","volcano"
+       ),
        pcut=0.05,
        fig.format=c("png","pdf"),
        export.what=c("annotation","p.value","meta.p.value",
@@ -138,7 +142,7 @@ result <- metaseqr(
        export.values="normalized",
        export.stats=c("mean","sd","cv"),
        export.where=out.dir,
-       restrict.cores=0.8,
+       restrict.cores=0.1,
        gene.filters=list(
              length=list(
                     length=500
@@ -189,15 +193,15 @@ result <- metaseqr(
        when.apply.filter="prenorm",
        normalization="edaseq",
        statistics=c("deseq","edger"),
-       meta.p="fisher",
        qc.plots=c(
-             "mds","biodetection","countsbio","saturation","readnoise","filtered",
-             "correl","pairwise","boxplot","gcbias","lengthbias","meandiff",
-             "meanvar","rnacomp","deheatmap","volcano","biodist","venn"
+           "mds","filtered","correl","pairwise","boxplot","gcbias",
+           "lengthbias","meandiff","meanvar","deheatmap","volcano"
        ),
+       meta.p="fisher",
        fig.format=c("png","pdf"),
        preset="medium.normal",
        export.where=out.dir2,
+       restrict.cores=0.1,
        out.list=TRUE
 )
 @
@@ -317,13 +321,12 @@ combination methods). The following example shows how to create such weights
 
 <<example-6, eval=TRUE, echo=TRUE, tidy=FALSE>>=
 data("mm9.gene.data",package="metaseqR")
-multic <- check.parallel(0.8)
 weights <- estimate.aufc.weights(
     counts=as.matrix(mm9.gene.counts[,9:12]),
     normalization="edaseq",
     statistics=c("edger","limma"),
     nsim=1,N=10,ndeg=c(2,2),top=4,model.org="mm9",
-    seed=42,multic=multic,libsize.gt=1e+5
+    seed=42,multic=FALSE,libsize.gt=1e+5
 )
 @
 
