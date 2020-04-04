@@ -713,7 +713,7 @@ diagplot.edaseq <- function(x,sample.list,covar=NULL,is.norm=FALSE,
         status <- "raw"
     if (is.null(covar)) covar <- rep(NA,nrow(x))
     s <- newSeqExpressionSet(x,phenoData=AnnotatedDataFrame(
-        data.frame(conditions=as.class.vector(sample.list),
+        data.frame(conditions=factor(as.class.vector(sample.list)),
         row.names=colnames(x))),featureData=AnnotatedDataFrame(data.frame(
         gc=covar,length=covar,row.names=rownames(x))))
     switch(which.plot,
